@@ -76,8 +76,9 @@ namespace WebAPI
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            builder.Services.AddInfrastructure().AddApplication();
-            
+            builder.Services.AddApplication();
+            builder.Services.AddInfrastructure(builder.Configuration.GetConnectionString("DefaultConnection"));
+            builder.Services.AddDbContext<RealDatabase>();
 
             var app = builder.Build();
 
