@@ -1,30 +1,46 @@
-﻿using Domain;
-using Infrastructure.Database;
+﻿using Application.Interfaces.RepositoryInterfaces;
+using Domain;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 
 namespace Application.Queries.Books.GetAll
 {
-    public class GetAllBooksQueryHandler : IRequestHandler<GetAllBooksQuery, List<Book>>
+    public class GetAllBooksQueryHandler : IRequestHandler<GetAllBooksQuery, OperationResult<List<Book>>>
     {
-        private readonly FakeDatabase _database;
+        private readonly IBookRepository _bookRepository;
+        private readonly ILogger<GetAllBooksQueryHandler> _logger;
 
-        public GetAllBooksQueryHandler(FakeDatabase database)
+        public GetAllBooksQueryHandler(IBookRepository bookRepository, ILogger<GetAllBooksQueryHandler> logger)
         {
-            _database = database;
+            _bookRepository = bookRepository;
+            _logger = logger;
         }
 
-        
-        public Task<List<Book>> Handle(GetAllBooksQuery request, CancellationToken cancellationToken)
+
+        public async Task<OperationResult<List<Book>>> Handle(GetAllBooksQuery request, CancellationToken cancellationToken)
         {
-            if (_database.Books == null || _database.Books.Count == 0)
+            _logger.LogInformation("Attempting to get all books.");
+
+            try
             {
-                throw new InvalidOperationException("No books found in the database.");
+                // Anropa repository för att hämta alla böcker
+                var result = await _bookRepository.GetAllBooks();
+
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation("Successfully retrieved all books.");
+                    return result;
+                }
+
+                _logger.LogWarning("Failed to retrieve books.");
+                return OperationResult<List<Book>>.Failure("Failed to retrieve books.");
             }
-
-            List<Book> booksFromDB = _database.Books;
-
-            return Task.FromResult(booksFromDB);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while getting all books.");
+                return OperationResult<List<Book>>.Failure($"An error occurred: {ex.Message}", "Database error.");
+            }
         }
     }
 }

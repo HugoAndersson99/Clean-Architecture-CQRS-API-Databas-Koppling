@@ -3,13 +3,13 @@ using MediatR;
 
 namespace Application.Commands.Books.DeleteBook
 {
-    public class DeleteBookCommand : IRequest<List<Book>>
+    public class DeleteBookCommand : IRequest<OperationResult<Book>>
     {
-        public DeleteBookCommand(int id)
-        {
-            Id = id;
-        }
+        public int BookId { get; set; }
 
-        public int Id { get; }
+        public DeleteBookCommand(int bookId)
+        {
+            BookId = bookId;
+        }
     }
 }

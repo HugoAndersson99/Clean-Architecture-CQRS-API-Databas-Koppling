@@ -1,72 +1,96 @@
 ﻿using Application.Commands.Authors.DeleteAuthor;
+using Application.Interfaces.RepositoryInterfaces;
 using Domain;
-using Infrastructure.Database;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace TestProject.AuthorTests.AuthorCommandTests
 {
     [TestFixture]
     public class DeleteAuthorCommandHandlerTests
     {
-        private FakeDatabase _database;
+        private Mock<IAuthorRepository> _authorRepositoryMock;
+        private Mock<ILogger<DeleteAuthorCommandHandler>> _loggerMock;
         private DeleteAuthorCommandHandler _handler;
 
         [SetUp]
         public void Setup()
         {
-            _database = new FakeDatabase();
-            _handler = new DeleteAuthorCommandHandler(_database);
+            _authorRepositoryMock = new Mock<IAuthorRepository>();
+            _loggerMock = new Mock<ILogger<DeleteAuthorCommandHandler>>();
+            _handler = new DeleteAuthorCommandHandler(_authorRepositoryMock.Object, _loggerMock.Object);
         }
 
         [Test]
-        public async Task Handle_ShouldDeleteAuthor_WhenAuthorExists()
+        public async Task Handle_ShouldReturnSuccess_WhenAuthorIsDeleted()
         {
             // Arrange
-            int IdOfExistingAuthorToDelete = 1;
-            var command = new DeleteAuthorCommand(IdOfExistingAuthorToDelete);
+            var authorId = 1;
+            _authorRepositoryMock
+                .Setup(repo => repo.DeleteAuthorById(authorId))
+                .ReturnsAsync(OperationResult<string>.Success("Author deleted successfully.", "Delete operation successful."));
+
+            var command = new DeleteAuthorCommand(authorId);
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
 
             // Assert
-            Assert.That(result, Is.Not.Null, "Result should not be null.");
-            Assert.That(result.Any(a => a.Id == 1), Is.False, "Author with Id 1 should be deleted.");
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data, Is.EqualTo("Author deleted successfully."));
+            _authorRepositoryMock.Verify(repo => repo.DeleteAuthorById(authorId), Times.Once);
+            _loggerMock.Verify(
+                logger => logger.LogInformation(It.IsAny<string>(), It.IsAny<object[]>()),
+                Times.AtLeastOnce
+            );
         }
 
         [Test]
-        public void Handle_ShouldThrowArgumentException_WhenIdIsInvalid()
+        public async Task Handle_ShouldReturnFailure_WhenAuthorNotFound()
         {
             // Arrange
-            int invalidId = 0;
-            var command = new DeleteAuthorCommand(invalidId);
+            var authorId = 99;
+            _authorRepositoryMock
+                .Setup(repo => repo.DeleteAuthorById(authorId))
+                .ReturnsAsync(OperationResult<string>.Failure("Author with Id 99 not found.", "Entity not found."));
 
-            // Act & Assert
-            var exceptionMessageReturn = Assert.ThrowsAsync<ArgumentException>(async () => await _handler.Handle(command, CancellationToken.None));
-            Assert.That(exceptionMessageReturn.Message, Does.Contain("Id must be greater than 0."), "Exception message should match.");
-        }
-
-        [Test]
-        public void Handle_ShouldThrowKeyNotFoundException_WhenAuthorDoesNotExist()
-        {
-            // Arrange
-            int idOfNoExistingAuthor = 999;
-            var command = new DeleteAuthorCommand(idOfNoExistingAuthor);
-
-            // Act & Assert
-            var ex = Assert.ThrowsAsync<KeyNotFoundException>(async () => await _handler.Handle(command, CancellationToken.None));
-            Assert.That(ex.Message, Does.Contain($"No author found with Id {idOfNoExistingAuthor}."), "Exception message should mention the missing author.");
-        }
-
-        [Test]
-        public async Task Handle_ShouldHandleEmptyAuthorList()
-        {
-            // Arrange
-            int authorId = 1;
-            _database.Authors.Clear(); 
             var command = new DeleteAuthorCommand(authorId);
 
-            // Act & Assert
-            var ex = Assert.ThrowsAsync<KeyNotFoundException>(async () => await _handler.Handle(command, CancellationToken.None));
-            Assert.That(ex.Message, Does.Contain($"No author found with Id {authorId}."), "Exception message should match.");
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.ErrorMessage, Is.EqualTo("Author with Id 99 not found."));
+            _authorRepositoryMock.Verify(repo => repo.DeleteAuthorById(authorId), Times.Once);
+            _loggerMock.Verify(
+                logger => logger.LogWarning(It.IsAny<string>(), It.IsAny<object[]>()),
+                Times.AtLeastOnce
+            );
+        }
+
+        [Test]
+        public async Task Handle_ShouldReturnFailure_WhenExceptionIsThrown()
+        {
+            // Arrange
+            var authorId = 1;
+            _authorRepositoryMock
+                .Setup(repo => repo.DeleteAuthorById(authorId))
+                .ThrowsAsync(new Exception("Database error"));
+
+            var command = new DeleteAuthorCommand(authorId);
+
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.ErrorMessage, Is.EqualTo("An unexpected error occurred."));
+            _authorRepositoryMock.Verify(repo => repo.DeleteAuthorById(authorId), Times.Once);
+            _loggerMock.Verify(
+                logger => logger.LogError(It.IsAny<Exception>(), It.IsAny<string>(), It.IsAny<object[]>()),
+                Times.Once
+            );
         }
     }
 }

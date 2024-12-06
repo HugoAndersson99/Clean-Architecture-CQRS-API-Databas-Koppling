@@ -1,33 +1,39 @@
-﻿using Domain;
-using Infrastructure.Database;
+﻿using Application.Interfaces.RepositoryInterfaces;
+using Domain;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Queries.Authors.GetAuthorById
 {
-    public class GetAuthorByIdQueryHandler : IRequestHandler<GetAuthorByIdQuery, Author>
+    public class GetAuthorByIdQueryHandler : IRequestHandler<GetAuthorByIdQuery, OperationResult<Author>>
     {
-        private readonly FakeDatabase _database;
+        private readonly IAuthorRepository _authorRepository;
+        private readonly ILogger<GetAuthorByIdQueryHandler> _logger;
 
-        public GetAuthorByIdQueryHandler(FakeDatabase database)
+        public GetAuthorByIdQueryHandler(IAuthorRepository authorRepository, ILogger<GetAuthorByIdQueryHandler> logger)
         {
-            _database = database;
+            _authorRepository = authorRepository;
+            _logger = logger;
         }
 
-        public Task<Author> Handle(GetAuthorByIdQuery request, CancellationToken cancellationToken)
+        public async Task<OperationResult<Author>> Handle(GetAuthorByIdQuery request, CancellationToken cancellationToken)
         {
-            if (request.Id <= 0)
+            _logger.LogInformation("Handling GetAuthorByIdQuery for ID {AuthorId}.", request.Id);
+
+            // Hämta författaren från repository
+            var result = await _authorRepository.GetAuthorById(request.Id);
+
+            // Returnera resultatet som OperationResult
+            if (result.IsSuccess)
             {
-                throw new ArgumentException("Id must be greater than 0.", nameof(request.Id));
+                _logger.LogInformation("Successfully retrieved author with ID {AuthorId}.", request.Id);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to retrieve author with ID {AuthorId}: {ErrorMessage}", request.Id, result.ErrorMessage);
             }
 
-            Author requestedAuthor = _database.Authors.FirstOrDefault(author => author.Id == request.Id);
-
-            if (requestedAuthor == null)
-            {
-                throw new KeyNotFoundException($"Author with Id {request.Id} not found.");
-            }
-
-            return Task.FromResult(requestedAuthor);
+            return result;
         }
     }
 }

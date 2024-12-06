@@ -79,6 +79,9 @@ namespace WebAPI
             builder.Services.AddApplication();
             builder.Services.AddInfrastructure(builder.Configuration.GetConnectionString("DefaultConnection"));
             builder.Services.AddDbContext<RealDatabase>();
+            builder.Logging.ClearProviders(); 
+            builder.Logging.AddConsole();     
+            builder.Logging.AddDebug();
 
             var app = builder.Build();
 

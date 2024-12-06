@@ -1,16 +1,16 @@
-﻿using Domain;
+﻿using Application.ApplicationDtos;
+using Domain;
 using MediatR;
 
 namespace Application.Commands.Books.AddBook
 {
-    public class AddBookCommand : IRequest<List<Book>>
+    public class AddBookCommand : IRequest<OperationResult<Book>>
     {
-        public AddBookCommand(Book bookToAdd)
+        public AddBookCommand(BookDto bookToAdd)
         {
-            newBook = bookToAdd;
+            NewBook = bookToAdd;
         }
 
-
-        public Book newBook { get; }
+        public BookDto NewBook { get; }
     }
 }

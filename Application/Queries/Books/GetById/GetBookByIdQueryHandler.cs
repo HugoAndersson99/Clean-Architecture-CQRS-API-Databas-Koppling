@@ -1,33 +1,44 @@
-﻿using Domain;
-using Infrastructure.Database;
+﻿using Application.Interfaces.RepositoryInterfaces;
+using Domain;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Queries.Books.GetById
 {
-    public class GetBookByIdQueryHandler : IRequestHandler<GetBookByIdQuery, Book>
+    public class GetBookByIdQueryHandler : IRequestHandler<GetBookByIdQuery, OperationResult<Book>>
     {
-        private readonly FakeDatabase _database;
+        private readonly IBookRepository _bookRepository;
+        private readonly ILogger<GetBookByIdQueryHandler> _logger;
 
-        public GetBookByIdQueryHandler(FakeDatabase database)
+        public GetBookByIdQueryHandler(IBookRepository bookRepository, ILogger<GetBookByIdQueryHandler> logger)
         {
-            _database = database;
+            _bookRepository = bookRepository;
+            _logger = logger;
         }
 
-        public Task<Book> Handle(GetBookByIdQuery request, CancellationToken cancellationToken)
+        public async Task<OperationResult<Book>> Handle(GetBookByIdQuery request, CancellationToken cancellationToken)
         {
-            if (request.Id <= 0)
+            _logger.LogInformation("Attempting to get book by Id: {BookId}", request.Id);
+
+            try
             {
-                throw new ArgumentException("Id must be greater than 0.", nameof(request.Id));
+                // Anropa repository för att hämta boken baserat på ID
+                var result = await _bookRepository.GetBookById(request.Id);
+
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation("Successfully retrieved book with Id: {BookId}", request.Id);
+                    return result;
+                }
+
+                _logger.LogWarning("Failed to retrieve book with Id: {BookId}", request.Id);
+                return OperationResult<Book>.Failure("Book not found.", "Database error.");
             }
-
-            Book requestedBook = _database.Books.FirstOrDefault(book => book.Id == request.Id);
-
-            if (requestedBook == null)
+            catch (Exception ex)
             {
-                throw new KeyNotFoundException($"Book with Id {request.Id} not found.");
+                _logger.LogError(ex, "Error while getting book by Id: {BookId}", request.Id);
+                return OperationResult<Book>.Failure($"An error occurred: {ex.Message}", "Database error.");
             }
-
-            return Task.FromResult(requestedBook);
         }
     }
 }

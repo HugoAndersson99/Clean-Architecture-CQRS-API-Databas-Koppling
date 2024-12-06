@@ -1,48 +1,44 @@
-﻿using Domain;
-using Infrastructure.Database;
+﻿using Application.Interfaces.RepositoryInterfaces;
+using Domain;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Commands.Books.UpdateBook
 {
-    public class UpdateBookByIdCommandHandler : IRequestHandler<UpdateBookByIdCommand, List<Book>>
+    public class UpdateBookByIdCommandHandler : IRequestHandler<UpdateBookByIdCommand, OperationResult<Book>>
     {
-        private readonly FakeDatabase _database;
+        private readonly IBookRepository _bookRepository;
+        private readonly ILogger<UpdateBookByIdCommandHandler> _logger;
 
-        public UpdateBookByIdCommandHandler(FakeDatabase database)
+        public UpdateBookByIdCommandHandler(IBookRepository bookRepository, ILogger<UpdateBookByIdCommandHandler> logger)
         {
-            _database = database;
+            _bookRepository = bookRepository;
+            _logger = logger;
         }
 
-        public Task<List<Book>> Handle(UpdateBookByIdCommand request, CancellationToken cancellationToken)
+        public async Task<OperationResult<Book>> Handle(UpdateBookByIdCommand request, CancellationToken cancellationToken)
         {
-            if (request.Id <= 0)
-            {
-                throw new ArgumentException("Id must be greater than 0.", nameof(request.Id));
-            }
-
-            if (request.UpdatedBook == null)
-            {
-                throw new ArgumentNullException(nameof(request.UpdatedBook), "Updated book details must be provided.");
-            }
-
-            Book bookToUpdate = _database.Books.FirstOrDefault(book => book.Id == request.Id);
-
-            if (bookToUpdate == null)
-            {
-                throw new KeyNotFoundException($"Book with Id {request.Id} not found.");
-            }
+            _logger.LogInformation("Attempting to update book with ID: {BookId}", request.BookId);
 
             try
             {
-                bookToUpdate.Description = request.UpdatedBook.Description;
-                bookToUpdate.Title = request.UpdatedBook.Title;
+                // Anropa repository för att uppdatera boken
+                var result = await _bookRepository.UpdateBook(request.BookId, request.UpdatedBook);
+
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation("Successfully updated book with ID: {BookId}", request.BookId);
+                    return result;
+                }
+
+                _logger.LogWarning("Failed to update book with ID: {BookId}", request.BookId);
+                return OperationResult<Book>.Failure("Failed to update book.");
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"An error occurred while updating the book with Id {request.Id}.", ex);
+                _logger.LogError(ex, "Error while updating book with ID: {BookId}", request.BookId);
+                return OperationResult<Book>.Failure($"An error occurred: {ex.Message}", "Database error.");
             }
-
-            return Task.FromResult(_database.Books);
         }
     }
 }

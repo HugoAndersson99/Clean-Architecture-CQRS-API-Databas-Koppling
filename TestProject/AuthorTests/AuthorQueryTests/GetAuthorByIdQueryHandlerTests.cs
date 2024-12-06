@@ -1,93 +1,69 @@
-﻿using Application.Queries.Authors.GetAuthorById;
+﻿using Application.Interfaces.RepositoryInterfaces;
+using Application.Queries.Authors.GetAllAuthors;
+using Application.Queries.Authors.GetAuthorById;
 using Domain;
 using Infrastructure.Database;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace TestProject.AuthorTests.AuthorQueryTests
 {
     [TestFixture]
     public class GetAuthorByIdQueryHandlerTests
     {
-        private FakeDatabase _database;
+        private Mock<IAuthorRepository> _mockAuthorRepository;
+        private Mock<ILogger<GetAuthorByIdQueryHandler>> _mockLogger;
         private GetAuthorByIdQueryHandler _handler;
 
         [SetUp]
         public void Setup()
         {
-            _database = new FakeDatabase();
-            _handler = new GetAuthorByIdQueryHandler(_database);
+            // Mocka IRepository och Logger
+            _mockAuthorRepository = new Mock<IAuthorRepository>();
+            _mockLogger = new Mock<ILogger<GetAuthorByIdQueryHandler>>();
+
+            // Skapa instans av handlern
+            _handler = new GetAuthorByIdQueryHandler(_mockAuthorRepository.Object, _mockLogger.Object);
         }
 
         [Test]
         public async Task Handle_ShouldReturnAuthor_WhenAuthorExists()
         {
             // Arrange
-            int existingIdOfAuhtor = 1;
-            Author choosenAuthor = _database.Authors.FirstOrDefault(author => author.Id == existingIdOfAuhtor);
-            
-            var query = new GetAuthorByIdQuery(existingIdOfAuhtor);
+            var authorId = 1;
+            var author = new Author { Id = authorId, Name = "Author One" };
+
+            // Mocka GetAuthorByIdAsync för att returnera en lyckad OperationResult
+            _mockAuthorRepository
+                .Setup(repo => repo.GetAuthorById(authorId))
+                .ReturnsAsync(OperationResult<Author>.Success(author));
 
             // Act
-            var result = await _handler.Handle(query, CancellationToken.None);
+            var result = await _handler.Handle(new GetAuthorByIdQuery(authorId), CancellationToken.None);
 
             // Assert
-            Assert.That(result, Is.Not.Null, "Result should not be null.");
-            Assert.That(result.Id, Is.EqualTo(existingIdOfAuhtor), "Author ID should match the requested ID.");
-            Assert.That(result.Name, Is.EqualTo(choosenAuthor.Name), "Author name should match the expected name.");
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Data.Id, Is.EqualTo(authorId));
+            Assert.That(result.Data.Name, Is.EqualTo("Author One")); 
         }
 
         [Test]
-        public void Handle_ShouldThrowArgumentException_WhenIdIsInvalid()
+        public async Task Handle_ShouldReturnFailure_WhenAuthorDoesNotExist()
         {
             // Arrange
-            int invalidId = 0;
-            var query = new GetAuthorByIdQuery(invalidId);
+            var authorId = 999; // Ett ID som inte finns i databasen
 
-            // Act & Assert
-            var ex = Assert.ThrowsAsync<ArgumentException>(async () => await _handler.Handle(query, CancellationToken.None));
-            Assert.That(ex.Message, Does.Contain("Id must be greater than 0"), "Exception message should match.");
-        }
-        [Test]
-        public void Handle_ShouldThrowKeyNotFoundException_WhenAuthorDoesNotExist()
-        {
-            // Arrange
-            int nonExistingId = 999;
-            var query = new GetAuthorByIdQuery(nonExistingId);
-
-            // Act & Assert
-            var ex = Assert.ThrowsAsync<KeyNotFoundException>(async () => await _handler.Handle(query, CancellationToken.None));
-            Assert.That(ex.Message, Does.Contain($"Author with Id {nonExistingId} not found"), "Exception message should match.");
-        }
-        [Test]
-        public void Handle_ShouldThrowKeyNotFoundException_WhenDatabaseIsEmpty()
-        {
-            // Arrange
-            int authorId = 1;
-            _database.Authors.Clear(); // Töm databasen
-            var query = new GetAuthorByIdQuery(authorId);
-
-            // Act & Assert
-            var ex = Assert.ThrowsAsync<KeyNotFoundException>(async () => await _handler.Handle(query, CancellationToken.None));
-            Assert.That(ex.Message, Does.Contain($"Author with Id {authorId} not found"), "Exception message should match.");
-        }
-        [Test]
-        public async Task Handle_ShouldReturnAuthorWithBooks_WhenAuthorExists()
-        {
-            // Arrange
-            var query = new GetAuthorByIdQuery(1); // Författare med ID 1 ("Hugo") finns i databasen
+            // Mocka GetAuthorByIdAsync för att returnera ett misslyckat OperationResult
+            _mockAuthorRepository
+                .Setup(repo => repo.GetAuthorById(authorId))
+                .ReturnsAsync(OperationResult<Author>.Failure("Author not found."));
 
             // Act
-            var result = await _handler.Handle(query, CancellationToken.None);
+            var result = await _handler.Handle(new GetAuthorByIdQuery(authorId), CancellationToken.None);
 
             // Assert
-            Assert.That(result, Is.Not.Null, "Result should not be null.");
-            Assert.That(result.Id, Is.EqualTo(1), "Author ID should match the requested ID.");
-            Assert.That(result.Name, Is.EqualTo("Hugo"), "Author name should match the expected name.");
-            Assert.That(result.Books, Is.Not.Null, "Author's book list should not be null.");
-            Assert.That(result.Books.Count, Is.EqualTo(2), "Author's book list should contain the expected number of books.");
-
-            // Kontrollera att rätt böcker returneras
-            Assert.That(result.Books[0].Title, Is.EqualTo("FirstBookOfHugo"), "The first book title should match.");
-            Assert.That(result.Books[1].Title, Is.EqualTo("SecondBookOfHugo"), "The second book title should match.");
+            Assert.That(result.IsSuccess, Is.False); // Kontrollera att resultatet är ett misslyckande
+            Assert.That(result.ErrorMessage, Is.EqualTo("Author not found.")); // Kontrollera att felmeddelandet är rätt
         }
     }
 }

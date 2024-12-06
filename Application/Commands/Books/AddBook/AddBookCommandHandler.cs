@@ -1,55 +1,46 @@
-﻿using Domain;
+﻿using Application.Interfaces.RepositoryInterfaces;
+using Domain;
 using MediatR;
-using Infrastructure.Database;
+using Microsoft.Extensions.Logging;
 
 
 namespace Application.Commands.Books.AddBook
 {
-    public class AddBookCommandHandler : IRequestHandler<AddBookCommand, List<Book>>
+    public class AddBookCommandHandler : IRequestHandler<AddBookCommand, OperationResult<Book>>
     {
-        private readonly FakeDatabase _database;
+        private readonly IBookRepository _bookRepository;
+        private readonly ILogger<AddBookCommandHandler> _logger;
 
-        public AddBookCommandHandler(FakeDatabase database)
+        public AddBookCommandHandler(IBookRepository bookRepository, ILogger<AddBookCommandHandler> logger)
         {
-            _database = database;
+            _bookRepository = bookRepository;
+            _logger = logger;
         }
 
-        public Task<List<Book>> Handle(AddBookCommand request, CancellationToken cancellationToken)
+        public async Task<OperationResult<Book>> Handle(AddBookCommand request, CancellationToken cancellationToken)
         {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
-            if (request.newBook == null)
-                throw new ArgumentNullException(nameof(request.newBook));
+            _logger.LogInformation("Attempting to add a new book: {BookTitle}", request.NewBook.Title);
 
-            Book newBook = request.newBook;
-
-            if (_database.Books.Any(book => book.Id == newBook.Id))
-                throw new InvalidOperationException($"A book with Id {newBook.Id} already exists.");
-
-            if (newBook.Author != null)
+            try
             {
-                var existingAuthor = _database.Authors.FirstOrDefault(a => a.Id == newBook.Author.Id);
+                
+                // Anropa repository för att lägga till boken
+                var result = await _bookRepository.AddBook(request.NewBook);
 
-                if (existingAuthor == null)
+                if (result.IsSuccess)
                 {
-                    existingAuthor = newBook.Author;
-                    existingAuthor.Id = _database.Authors.Any() ? _database.Authors.Max(a => a.Id) + 1 : 1;
-                    _database.Authors.Add(existingAuthor);
+                    _logger.LogInformation("Successfully added book: {BookTitle} (ID: {BookId})", request.NewBook.Title, result.Data.Id);
+                    return OperationResult<Book>.Success(result.Data, "Book added successfully.");
                 }
 
-                if (!existingAuthor.Books.Contains(newBook))
-                {
-                    existingAuthor.Books.Add(newBook);
-                }
-
-                newBook.Author = existingAuthor;
+                _logger.LogWarning("Failed to add book: {BookTitle}", request.NewBook.Title);
+                return OperationResult<Book>.Failure("Failed to add book.");
             }
-
-            newBook.Id = _database.Books.Any() ? _database.Books.Max(b => b.Id) + 1 : 1;
-
-            _database.Books.Add(newBook);
-
-            return Task.FromResult(_database.Books);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while adding book: {BookTitle}", request.NewBook.Title);
+                return OperationResult<Book>.Failure($"An error occurred: {ex.Message}", "Database error.");
+            }
         }
     }
 }
