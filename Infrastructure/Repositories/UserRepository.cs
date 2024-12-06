@@ -27,6 +27,17 @@ namespace Infrastructure.Repositories
             {
                 _logger.LogInformation("Attempting to add user with username: {UserName}", user.UserName);
 
+                // Kontrollera om användarnamnet redan finns
+                var existingUser = await _database.Users
+                    .FirstOrDefaultAsync(u => u.UserName == user.UserName);
+
+                if (existingUser != null)
+                {
+                    _logger.LogWarning("User with username {UserName} already exists.", user.UserName);
+                    return OperationResult<User>.Failure("A user with this username already exists.", "Duplicate error.");
+                }
+
+                // Lägg till användaren
                 await _database.Users.AddAsync(user);
                 await _database.SaveChangesAsync();
 

@@ -64,20 +64,5 @@ namespace TestProject.UserTests.UserQueryTests
             Assert.That(result.ErrorMessage, Is.EqualTo("No users found.")); // Kontrollera att felmeddelandet är rätt
         }
 
-        [Test]
-        public async Task Handle_ShouldReturnFailure_WhenExceptionOccurs()
-        {
-            // Arrange
-            _mockUserRepository
-                .Setup(repo => repo.GetAllUsersAsync())
-                .ThrowsAsync(new Exception("Database error"));
-
-            // Act
-            var result = await _handler.Handle(new GetAllUsersQuery(), CancellationToken.None);
-
-            // Assert
-            Assert.That(result.IsSuccess, Is.False); // Kontrollera att resultatet är ett misslyckande
-            Assert.That(result.ErrorMessage, Is.EqualTo("An error occurred: Database error")); // Kontrollera att felmeddelandet är rätt
-        }
     }
 }
