@@ -1,32 +1,45 @@
 ﻿
 
+using Application.Interfaces.RepositoryInterfaces;
 using Domain;
-using Infrastructure.Database;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Commands.Users.AddNewUser
 {
-    public class AddNewUserCommandHandler : IRequestHandler<AddNewUserCommand, User>
+    public class AddNewUserCommandHandler : IRequestHandler<AddNewUserCommand, OperationResult<User>>
     {
-        private readonly FakeDatabase _database;
+        private readonly IUserRepository _userRepository;
 
-        public AddNewUserCommandHandler(FakeDatabase database)
+        public AddNewUserCommandHandler(IUserRepository userRepository)
         {
-            _database = database;
+            _userRepository = userRepository;
         }
 
-        public Task<User> Handle(AddNewUserCommand request, CancellationToken cancellationToken)
+        public async Task<OperationResult<User>> Handle(AddNewUserCommand request, CancellationToken cancellationToken)
         {
-            User userToCreate = new User()
+            var userToCreate = new User
             {
                 Id = Guid.NewGuid(),
                 UserName = request.NewUser.UserName,
-                Password = request.NewUser.Password,
+                Password = request.NewUser.Password
             };
 
-            _database.Users.Add(userToCreate);
+            try
+            {
+                var result = await _userRepository.AddUserAsync(userToCreate);
 
-            return Task.FromResult(userToCreate);
+                if (result.IsSuccess)
+                {
+                    return OperationResult<User>.Success(userToCreate, "User added successfully.");
+                }
+
+                return OperationResult<User>.Failure(result.ErrorMessage, "Failed to add user.");
+            }
+            catch (Exception ex)
+            {
+                return OperationResult<User>.Failure($"An error occurred: {ex.Message}", "Database error.");
+            }
         }
     }
 }

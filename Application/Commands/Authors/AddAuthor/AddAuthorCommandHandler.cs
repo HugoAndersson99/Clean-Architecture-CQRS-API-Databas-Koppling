@@ -1,44 +1,44 @@
-﻿using Domain;
-using Infrastructure.Database;
+﻿using Application.Interfaces.RepositoryInterfaces;
+using Domain;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Commands.Authors.AddAuthor
 {
-    public class AddAuthorCommandHandler : IRequestHandler<AddAuthorCommand, List<Author>>
+    public class AddAuthorCommandHandler : IRequestHandler<AddAuthorCommand, OperationResult<Author>>
     {
-        private readonly FakeDatabase _database;
+        private readonly IAuthorRepository _authorRepository;
+        private readonly ILogger<AddAuthorCommandHandler> _logger;
 
-        public AddAuthorCommandHandler(FakeDatabase database)
+        public AddAuthorCommandHandler(IAuthorRepository authorRepository, ILogger<AddAuthorCommandHandler> logger)
         {
-            _database = database;
+            _authorRepository = authorRepository;
+            _logger = logger;
         }
 
-        public Task<List<Author>> Handle(AddAuthorCommand request, CancellationToken cancellationToken)
+        public async Task<OperationResult<Author>> Handle(AddAuthorCommand request, CancellationToken cancellationToken)
         {
-            Author newAuthor = request.AuthorToAdd;
-            if (newAuthor == null)
-            {
-                throw new ArgumentNullException(nameof(newAuthor), "Author details must be provided.");
-            }
+            _logger.LogInformation("Processing AddAuthorCommand for Author: {AuthorName}", request.AuthorToAdd?.Name);
 
-            if (string.IsNullOrWhiteSpace(newAuthor.Name))
+            try
             {
-                throw new ArgumentException("Author name must not be empty.", nameof(newAuthor.Name));
-            }
+                var result = await _authorRepository.AddAuthor(request.AuthorToAdd);
 
-            // Generera ett nytt ID om det behövs
-            if (_database.Authors.Count != 0)
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation("Successfully added author: {AuthorName})", request.AuthorToAdd.Name);
+                    return OperationResult<Author>.Success(result.Data, "Author added successfully.");
+                }
+
+                _logger.LogWarning("Failed to add author: {AuthorName}", request.AuthorToAdd.Name);
+                return OperationResult<Author>.Failure("Failed to add book.");
+
+            }
+            catch (Exception ex)
             {
-                newAuthor.Id = _database.Authors.Max(a => a.Id) + 1;
+                _logger.LogError(ex, "Error while adding author: {AuthorName}", request.AuthorToAdd.Name);
+                return OperationResult<Author>.Failure($"An error occurred: {ex.Message}", "Database error.");
             }
-            else
-            {
-                newAuthor.Id = 1;
-            }
-
-            _database.Authors.Add(newAuthor);
-
-            return Task.FromResult(_database.Authors);
         }
     }
 }

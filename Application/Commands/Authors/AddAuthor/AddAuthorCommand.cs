@@ -1,15 +1,16 @@
-﻿using Domain;
+﻿using Application.ApplicationDtos;
+using Domain;
 using MediatR;
 
 namespace Application.Commands.Authors.AddAuthor
 {
-    public class AddAuthorCommand : IRequest<List<Author>>
+    public class AddAuthorCommand : IRequest<OperationResult<Author>>
     {
-        public AddAuthorCommand(Author authorToAdd)
+        public AddAuthorCommand(AuthorDto authorToAdd)
         {
             AuthorToAdd = authorToAdd;
         }
 
-        public Author AuthorToAdd { get; }
+        public AuthorDto AuthorToAdd { get; }
     }
 }

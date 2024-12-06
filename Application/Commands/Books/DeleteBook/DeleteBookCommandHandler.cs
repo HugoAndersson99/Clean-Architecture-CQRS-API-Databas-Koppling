@@ -1,47 +1,44 @@
-﻿using Domain;
-using Infrastructure.Database;
+﻿using Application.Interfaces.RepositoryInterfaces;
+using Domain;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Commands.Books.DeleteBook
 {
-    public class DeleteBookCommandHandler : IRequestHandler<DeleteBookCommand, List<Book>>
+    public class DeleteBookCommandHandler : IRequestHandler<DeleteBookCommand, OperationResult<Book>>
     {
-        private readonly FakeDatabase _database;
+        private readonly IBookRepository _bookRepository;
+        private readonly ILogger<DeleteBookCommandHandler> _logger;
 
-        public DeleteBookCommandHandler(FakeDatabase database)
+        public DeleteBookCommandHandler(IBookRepository bookRepository, ILogger<DeleteBookCommandHandler> logger)
         {
-            _database = database;
+            _bookRepository = bookRepository;
+            _logger = logger;
         }
 
-        public Task<List<Book>> Handle(DeleteBookCommand request, CancellationToken cancellationToken)
+        public async Task<OperationResult<Book>> Handle(DeleteBookCommand request, CancellationToken cancellationToken)
         {
-            if (request.Id <= 0)
-            {
-                throw new ArgumentException("Id must be greater than 0.", nameof(request.Id));
-            }
-
-            Book bookToDelete = _database.Books.FirstOrDefault(book => book.Id == request.Id);
-
-            if (bookToDelete == null)
-            {
-                throw new KeyNotFoundException($"No book found with Id {request.Id}.");
-            }
+            _logger.LogInformation("Attempting to delete book with ID: {BookId}", request.BookId);
 
             try
             {
-                if (bookToDelete.Author != null)
+                // Anropa repository för att ta bort boken
+                var result = await _bookRepository.DeleteBook(request.BookId);
+
+                if (result.IsSuccess)
                 {
-                    bookToDelete.Author.Books.Remove(bookToDelete);
+                    _logger.LogInformation("Successfully deleted book with ID: {BookId}", request.BookId);
+                    return OperationResult<Book>.Success(null, "Book deleted successfully.");
                 }
 
-                _database.Books.Remove(bookToDelete);
+                _logger.LogWarning("Failed to delete book with ID: {BookId}", request.BookId);
+                return OperationResult<Book>.Failure("Failed to delete book.");
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"An error occurred while trying to delete the book with Id {request.Id}.", ex);
+                _logger.LogError(ex, "Error while deleting book with ID: {BookId}", request.BookId);
+                return OperationResult<Book>.Failure($"An error occurred: {ex.Message}", "Database error.");
             }
-
-            return Task.FromResult(_database.Books);
         }
     }
 }

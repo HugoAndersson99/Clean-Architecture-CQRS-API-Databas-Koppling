@@ -1,86 +1,83 @@
 ﻿using Application.Commands.Books.DeleteBook;
+using Application.Interfaces.RepositoryInterfaces;
 using Domain;
 using Infrastructure.Database;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace TestProject.BookTests.CommandTests
 {
     [TestFixture]
     public class DeleteBookCommandHandlerTests
     {
+        private Mock<IBookRepository> _bookRepositoryMock;
+        private Mock<ILogger<DeleteBookCommandHandler>> _loggerMock;
         private DeleteBookCommandHandler _handler;
-        private FakeDatabase _fakeDatabase;
 
         [SetUp]
         public void Setup()
         {
-            _fakeDatabase = new FakeDatabase();
-            _handler = new DeleteBookCommandHandler(_fakeDatabase);
+            _bookRepositoryMock = new Mock<IBookRepository>();
+            _loggerMock = new Mock<ILogger<DeleteBookCommandHandler>>();
+            _handler = new DeleteBookCommandHandler(_bookRepositoryMock.Object, _loggerMock.Object);
         }
 
         [Test]
         public async Task Handle_ShouldDeleteBook_WhenBookExists()
         {
             // Arrange
-            int bookId = 10;
-            Book bookToDelete = new Book(bookId, "Title", "Description");
-            _fakeDatabase.Books.Add(bookToDelete);
+            var bookId = 1;
             var command = new DeleteBookCommand(bookId);
 
-            // Act
-            var result = await _handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            Assert.That(result, Does.Not.Contain(bookToDelete));
-            Assert.That(_fakeDatabase.Books, Does.Not.Contain(bookToDelete));
-        }
-
-        [Test]
-        public void Handle_ShouldThrowArgumentException_WhenIdIsInvalid()
-        {
-            // Arrange
-            int invalidId = 0;
-            var command = new DeleteBookCommand(invalidId);
-
-            // Act & Assert
-            var exceptionReturn = Assert.ThrowsAsync<ArgumentException>(() =>
-                _handler.Handle(command, CancellationToken.None));
-
-            Assert.That(exceptionReturn.Message, Does.Contain("Id must be greater than 0."));
-        }
-        [Test]
-        public void Handle_ShouldThrowKeyNotFoundException_WhenBookDoesNotExist()
-        {
-            // Arrange
-            int nonExistentId = 999;
-            var command = new DeleteBookCommand(nonExistentId);
-
-            // Act & Assert
-            var ex = Assert.ThrowsAsync<KeyNotFoundException>(() =>
-                _handler.Handle(command, CancellationToken.None));
-
-            Assert.That(ex.Message, Is.EqualTo($"No book found with Id {nonExistentId}."));
-        }
-        [Test]
-        public async Task Handle_ShouldReturnUpdatedList_WhenBookIsDeleted()
-        {
-            // Arrange
-            int bookIdToBeDeleted = 10;
-            int bookIdToStay = 20;
-            var book1 = new Book(bookIdToBeDeleted, "Title1", "Description1");
-            var book2 = new Book(bookIdToStay, "Title2", "Description2");
-            _fakeDatabase.Books.Add(book1);
-            _fakeDatabase.Books.Add(book2);
-            int bookCountBeforeDelete = _fakeDatabase.Books.Count;
-            int newBookCountAfterDelete = _fakeDatabase.Books.Count - 1;
-            var command = new DeleteBookCommand(bookIdToBeDeleted);
+            _bookRepositoryMock
+                .Setup(repo => repo.DeleteBook(It.IsAny<int>()))
+                .ReturnsAsync(OperationResult<Book>.Success(null, "Book deleted successfully."));
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
 
             // Assert
-            Assert.That(result.Count, Is.EqualTo(newBookCountAfterDelete));
-            Assert.That(result, Does.Contain(book2));
-            Assert.That(result, Does.Not.Contain(book1));
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual("Book deleted successfully.", result.Message);
+            _bookRepositoryMock.Verify(repo => repo.DeleteBook(It.IsAny<int>()), Times.Once);
+        }
+
+        [Test]
+        public async Task Handle_ShouldReturnFailure_WhenBookDoesNotExist()
+        {
+            // Arrange
+            var bookId = 999; // Assume this ID does not exist
+            var command = new DeleteBookCommand(bookId);
+
+            _bookRepositoryMock
+                .Setup(repo => repo.DeleteBook(It.IsAny<int>()))
+                .ReturnsAsync(OperationResult<Book>.Failure("Book not found.", "Database error."));
+
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("Book not found.", result.Message);
+        }
+
+        [Test]
+        public async Task Handle_ShouldReturnFailure_WhenErrorOccurs()
+        {
+            // Arrange
+            var bookId = 1;
+            var command = new DeleteBookCommand(bookId);
+
+            _bookRepositoryMock
+                .Setup(repo => repo.DeleteBook(It.IsAny<int>()))
+                .ReturnsAsync(OperationResult<Book>.Failure("An error occurred while deleting the book."));
+
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("An error occurred while deleting the book.", result.Message);
         }
     }
 }

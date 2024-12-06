@@ -1,28 +1,42 @@
-﻿using Domain;
-using Infrastructure.Database;
+﻿using Application.Interfaces.RepositoryInterfaces;
+using Domain;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Queries.Authors.GetAllAuthors
 {
-    public class GetAllAuthorsQueryHandler : IRequestHandler<GetAllAuthorsQuery, List<Author>>
+    public class GetAllAuthorsQueryHandler : IRequestHandler<GetAllAuthorsQuery, OperationResult<List<Author>>>
     {
-        private readonly FakeDatabase _database;
+        private readonly IAuthorRepository _authorRepository;
+        private readonly ILogger<GetAllAuthorsQueryHandler> _logger;
 
-        public GetAllAuthorsQueryHandler(FakeDatabase database)
+        public GetAllAuthorsQueryHandler(IAuthorRepository authorRepository, ILogger<GetAllAuthorsQueryHandler> logger)
         {
-            _database = database;
+            _authorRepository = authorRepository;
+            _logger = logger;
         }
 
-        public Task<List<Author>> Handle(GetAllAuthorsQuery request, CancellationToken cancellationToken)
+        public async Task<OperationResult<List<Author>>> Handle(GetAllAuthorsQuery request, CancellationToken cancellationToken)
         {
-            if (_database.Authors == null || _database.Authors.Count == 0)
+            try
             {
-                throw new InvalidOperationException("No authors found in the database.");
+                _logger.LogInformation("Attempting to get all authors from the database.");
+                var authors = await _authorRepository.GetAllAuthors(); // Hämta alla författare från databasen
+
+                if (authors == null || authors.Data.Count == 0)
+                {
+                    _logger.LogWarning("No authors found in the database.");
+                    return OperationResult<List<Author>>.Failure("No authors found.", "Database is empty.");
+                }
+
+                _logger.LogInformation($"Successfully retrieved {authors.Data.Count} authors from the database.");
+                return OperationResult<List<Author>>.Success(authors.Data);
             }
-
-            List<Author> authorsFromDB = _database.Authors;
-
-            return Task.FromResult(authorsFromDB);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while retrieving authors.");
+                return OperationResult<List<Author>>.Failure($"An error occurred: {ex.Message}", "Database error.");
+            }
         }
     }
 }

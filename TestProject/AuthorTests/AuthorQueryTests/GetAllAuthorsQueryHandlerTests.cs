@@ -1,44 +1,66 @@
-﻿using Application.Queries.Authors.GetAllAuthors;
+﻿using Application.Interfaces.RepositoryInterfaces;
+using Application.Queries.Authors.GetAllAuthors;
+using Domain;
 using Infrastructure.Database;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace TestProject.AuthorTests.AuthorQueryTests
 {
     [TestFixture]
     public class GetAllAuthorsQueryHandlerTests
     {
-        private FakeDatabase _database;
+        private Mock<IAuthorRepository> _mockAuthorRepository;
+        private Mock<ILogger<GetAllAuthorsQueryHandler>> _mockLogger;
         private GetAllAuthorsQueryHandler _handler;
 
         [SetUp]
         public void Setup()
         {
-            _database = new FakeDatabase();
-            _handler = new GetAllAuthorsQueryHandler(_database);
+            _mockAuthorRepository = new Mock<IAuthorRepository>();
+            _mockLogger = new Mock<ILogger<GetAllAuthorsQueryHandler>>();
+            _handler = new GetAllAuthorsQueryHandler(_mockAuthorRepository.Object, _mockLogger.Object);
         }
+
         [Test]
-        public async Task Handle_ShouldReturnAllAuthors_WhenAuthorsExist()
+        public async Task Handle_ShouldReturnAuthors_WhenAuthorsExist()
         {
             // Arrange
-            var query = new GetAllAuthorsQuery();
+            var authors = new List<Author>
+        {
+            new Author { Id = 1, Name = "Author One" },
+            new Author { Id = 2, Name = "Author Two" }
+        };
+
+            // Mocka GetAllAuthorsAsync för att returnera en lyckad OperationResult
+            _mockAuthorRepository
+                .Setup(repo => repo.GetAllAuthors())
+                .ReturnsAsync(OperationResult<List<Author>>.Success(authors));
 
             // Act
-            var result = await _handler.Handle(query, CancellationToken.None);
+            var result = await _handler.Handle(new GetAllAuthorsQuery(), CancellationToken.None);
 
             // Assert
-            Assert.That(result, Is.Not.Null, "Result should not be null.");
-            Assert.That(result.Count, Is.EqualTo(_database.Authors.Count), "The number of authors should match the database count.");
-            CollectionAssert.AreEquivalent(_database.Authors, result, "The books returned should match the books in the database.");
+            Assert.That(result.IsSuccess, Is.True); // Kontrollera att resultatet är en framgång
+            Assert.That(result.Data.Count, Is.EqualTo(2)); // Kontrollera att listan innehåller 2 författare
+            Assert.That(result.Data[0].Name, Is.EqualTo("Author One")); // Kontrollera att namnet på den första författaren är rätt
         }
+
         [Test]
-        public void Handle_ShouldThrowInvalidOperationException_WhenNoAuthorsExist()
+        public async Task Handle_ShouldReturnFailure_WhenNoAuthorsExist()
         {
             // Arrange
-            _database.Authors.Clear(); // Töm databasen
-            var query = new GetAllAuthorsQuery();
+            // Mocka GetAllAuthorsAsync för att returnera ett misslyckat OperationResult
+            _mockAuthorRepository
+                .Setup(repo => repo.GetAllAuthors())
+                .ReturnsAsync(OperationResult<List<Author>>.Failure("No authors found."));
 
-            // Act & Assert
-            var exceptionMessage = Assert.ThrowsAsync<InvalidOperationException>(async () => await _handler.Handle(query, CancellationToken.None));
-            Assert.That(exceptionMessage.Message, Does.Contain("No authors found in the database."), "Exception message should match.");
+            // Act
+            var result = await _handler.Handle(new GetAllAuthorsQuery(), CancellationToken.None);
+
+            // Assert
+            Assert.That(result.IsSuccess, Is.False); // Kontrollera att resultatet är ett misslyckande
+            Assert.That(result.ErrorMessage, Is.EqualTo("No authors found.")); // Kontrollera felmeddelandet
         }
     }
 }

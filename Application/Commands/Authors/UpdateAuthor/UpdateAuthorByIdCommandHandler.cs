@@ -1,47 +1,39 @@
-﻿using Domain;
-using Infrastructure.Database;
+﻿using Application.Interfaces.RepositoryInterfaces;
+using Domain;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Commands.Authors.UpdateAuthor
 {
-    public class UpdateAuthorByIdCommandHandler : IRequestHandler<UpdateAuthorByIdCommand, Author>
+    public class UpdateAuthorByIdCommandHandler : IRequestHandler<UpdateAuthorByIdCommand, OperationResult<Author>>
     {
-        private readonly FakeDatabase _database;
+        private readonly IAuthorRepository _authorRepository;
+        private readonly ILogger<UpdateAuthorByIdCommandHandler> _logger;
 
-        public UpdateAuthorByIdCommandHandler(FakeDatabase database)
+        public UpdateAuthorByIdCommandHandler(IAuthorRepository authorRepository, ILogger<UpdateAuthorByIdCommandHandler> logger)
         {
-            _database = database;
+            _authorRepository = authorRepository;
+            _logger = logger;
         }
 
-        public Task<Author> Handle(UpdateAuthorByIdCommand request, CancellationToken cancellationToken)
+        public async Task<OperationResult<Author>> Handle(UpdateAuthorByIdCommand request, CancellationToken cancellationToken)
         {
-            if (request.UpdatedAuthor == null)
+            // Logga när vi börjar hantera uppdateringen
+            _logger.LogInformation("Handling update request for author with Id {AuthorId}", request.Id);
+
+            // Kalla på repositoryn för att uppdatera författaren
+            var result = await _authorRepository.UpdateAuthor(request.UpdatedAuthor, request.Id);
+
+            if (result.IsSuccess)
             {
-                throw new ArgumentNullException(nameof(request.UpdatedAuthor), "Updated author details must be provided.");
+                // Om uppdateringen lyckas, logga framgång
+                _logger.LogInformation("Successfully updated author with Id {AuthorId}", request.Id);
+                return result;
             }
 
-            if (string.IsNullOrWhiteSpace(request.UpdatedAuthor.Name))
-            {
-                throw new ArgumentException("Author name must not be empty.", nameof(request.UpdatedAuthor.Name));
-            }
-
-            Author authorToUpdate = _database.Authors.FirstOrDefault(author => author.Id == request.Id);
-
-            if (authorToUpdate == null)
-            {
-                throw new KeyNotFoundException($"Author with Id {request.Id} not found.");
-            }
-
-            authorToUpdate.Name = request.UpdatedAuthor.Name;
-
-            if (request.UpdatedAuthor.Books != null)
-            {
-                authorToUpdate.Books = request.UpdatedAuthor.Books;
-            }
-
-            return Task.FromResult(authorToUpdate);
+            // Om något gick fel, logga misslyckandet
+            _logger.LogWarning("Failed to update author with Id {AuthorId}", request.Id);
+            return OperationResult<Author>.Failure("Failed to update author", "Update error");
         }
-
-        
     }
 }

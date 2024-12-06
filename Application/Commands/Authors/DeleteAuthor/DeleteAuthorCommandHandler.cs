@@ -1,43 +1,43 @@
-﻿using Domain;
-using Infrastructure.Database;
+﻿using Application.Interfaces.RepositoryInterfaces;
+using Domain;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Commands.Authors.DeleteAuthor
 {
-    public class DeleteAuthorCommandHandler : IRequestHandler<DeleteAuthorCommand, List<Author>>
+    public class DeleteAuthorCommandHandler : IRequestHandler<DeleteAuthorCommand, OperationResult<string>>
     {
-        private readonly FakeDatabase _database;
+        private readonly IAuthorRepository _authorRepository;
+        private readonly ILogger<DeleteAuthorCommandHandler> _logger;
 
-        public DeleteAuthorCommandHandler(FakeDatabase database)
+        public DeleteAuthorCommandHandler(IAuthorRepository authorRepository, ILogger<DeleteAuthorCommandHandler> logger)
         {
-            _database = database;
+            _authorRepository = authorRepository;
+            _logger = logger;
         }
 
-        public Task<List<Author>> Handle(DeleteAuthorCommand request, CancellationToken cancellationToken)
+        public async Task<OperationResult<string>> Handle(DeleteAuthorCommand request, CancellationToken cancellationToken)
         {
-            if (request.Id <= 0)
-            {
-                throw new ArgumentException("Id must be greater than 0.", nameof(request.Id));
-            }
-
-            Author authorToDelete = _database.Authors.FirstOrDefault(author => author.Id == request.Id);
-
-            if (authorToDelete == null)
-            {
-                throw new KeyNotFoundException($"No author found with Id {request.Id}.");
-            }
+            _logger.LogInformation("Starting DeleteAuthorCommand for AuthorId: {AuthorId}", request.Id);
 
             try
             {
-                _database.Authors.Remove(authorToDelete);
+                var result = await _authorRepository.DeleteAuthorById(request.Id);
+
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation("Successfully deleted author with Id: {AuthorId}", request.Id);
+                    return OperationResult<string>.Success("Author deleted successfully.", "Delete operation successful.");
+                }
+
+                _logger.LogWarning("Failed to delete author with Id: {AuthorId}. Reason: {ErrorMessage}", request.Id, result.ErrorMessage);
+                return OperationResult<string>.Failure(result.ErrorMessage, "Delete operation failed.");
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"An error occurred while trying to delete the author with Id {request.Id}.", ex);
+                _logger.LogError(ex, "Error occurred while deleting author with Id: {AuthorId}", request.Id);
+                return OperationResult<string>.Failure("An unexpected error occurred.", "Delete operation encountered an error.");
             }
-
-            return Task.FromResult(_database.Authors);
         }
     }
-    
 }
