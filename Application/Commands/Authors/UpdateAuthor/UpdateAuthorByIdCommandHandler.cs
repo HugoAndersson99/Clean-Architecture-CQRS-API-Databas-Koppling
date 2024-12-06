@@ -21,19 +21,28 @@ namespace Application.Commands.Authors.UpdateAuthor
             // Logga när vi börjar hantera uppdateringen
             _logger.LogInformation("Handling update request for author with Id {AuthorId}", request.Id);
 
-            // Kalla på repositoryn för att uppdatera författaren
-            var result = await _authorRepository.UpdateAuthor(request.UpdatedAuthor, request.Id);
-
-            if (result.IsSuccess)
+            try
             {
-                // Om uppdateringen lyckas, logga framgång
-                _logger.LogInformation("Successfully updated author with Id {AuthorId}", request.Id);
-                return result;
-            }
+                // Kalla på repositoryn för att uppdatera författaren
+                var result = await _authorRepository.UpdateAuthor(request.UpdatedAuthor, request.Id);
 
-            // Om något gick fel, logga misslyckandet
-            _logger.LogWarning("Failed to update author with Id {AuthorId}", request.Id);
-            return OperationResult<Author>.Failure("Failed to update author", "Update error");
+                if (result.IsSuccess)
+                {
+                    // Om uppdateringen lyckas, logga framgång
+                    _logger.LogInformation("Successfully updated author with Id {AuthorId}", request.Id);
+                    return result;
+                }
+
+                // Om uppdateringen misslyckas, logga det och ge ett specifikt felmeddelande
+                _logger.LogWarning("Failed to update author with Id {AuthorId}. Reason: {ErrorMessage}", request.Id, result.ErrorMessage);
+                return OperationResult<Author>.Failure($"Failed to update author: {result.ErrorMessage}", "Update error");
+            }
+            catch (Exception ex)
+            {
+                // Logga eventuella fel som uppstår under uppdateringsförsöket
+                _logger.LogError(ex, "An error occurred while updating author with Id {AuthorId}", request.Id);
+                return OperationResult<Author>.Failure("An unexpected error occurred while updating the author.", "Unexpected error");
+            }
         }
     }
 }

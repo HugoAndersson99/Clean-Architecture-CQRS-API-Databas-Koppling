@@ -19,6 +19,11 @@ namespace Application.Commands.Authors.AddAuthor
         public async Task<OperationResult<Author>> Handle(AddAuthorCommand request, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Processing AddAuthorCommand for Author: {AuthorName}", request.AuthorToAdd?.Name);
+            if (string.IsNullOrEmpty(request.AuthorToAdd?.Name))
+            {
+                // Om författarens namn är tomt eller null, returnera ett fel
+                return OperationResult<Author>.Failure("Author name cannot be empty");
+            }
 
             try
             {
@@ -31,7 +36,7 @@ namespace Application.Commands.Authors.AddAuthor
                 }
 
                 _logger.LogWarning("Failed to add author: {AuthorName}", request.AuthorToAdd.Name);
-                return OperationResult<Author>.Failure("Failed to add book.");
+                return OperationResult<Author>.Failure("Failed to add author.");
 
             }
             catch (Exception ex)

@@ -1,107 +1,128 @@
-﻿using Application.Commands.Authors.AddAuthor;
+﻿using Application.ApplicationDtos;
+using Application.Commands.Authors.AddAuthor;
 using Application.Interfaces.RepositoryInterfaces;
 using Domain;
+using FakeItEasy;
+using Infrastructure;
+using Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Moq;
+
+
 
 namespace TestProject.AuthorTests.AuthorCommandTests
 {
-   //[TestFixture]
-   //public class AddAuthorCommandHandlerTests
-   //{
-   //    private Mock<IAuthorRepository> _authorRepositoryMock;
-   //    private Mock<ILogger<AddAuthorCommandHandler>> _loggerMock;
-   //    private AddAuthorCommandHandler _handler;
-   //
-   //    [SetUp]
-   //    public void Setup()
-   //    {
-   //        _authorRepositoryMock = new Mock<IAuthorRepository>();
-   //        _loggerMock = new Mock<ILogger<AddAuthorCommandHandler>>();
-   //        _handler = new AddAuthorCommandHandler(_authorRepositoryMock.Object, _loggerMock.Object);
-   //    }
-   //
-   //    [Test]
-   //    public async Task Handle_ShouldReturnSuccess_WhenAuthorIsAdded()
-   //    {
-   //        // Arrange
-   //        Author newAuthor = new Author(10, "HugoTest");
-   //        var command = new AddAuthorCommand(newAuthor);
-   //
-   //        _authorRepositoryMock
-   //            .Setup(repo => repo.AddAuthor(newAuthor))
-   //            .ReturnsAsync(OperationResult<Author>.Success(newAuthor, "Author added successfully."));
-   //
-   //        // Act
-   //        var result = await _handler.Handle(command, CancellationToken.None);
-   //
-   //        // Assert
-   //        Assert.That(result.IsSuccess, Is.True, "The operation should be successful.");
-   //        Assert.That(result.Data, Is.Not.Null, "The result data should not be null.");
-   //        Assert.That(result.Data.Name, Is.EqualTo(newAuthor.Name), "The returned author name should match the input.");
-   //        _authorRepositoryMock.Verify(repo => repo.AddAuthor(newAuthor), Times.Once);
-   //        _loggerMock.Verify(
-   //            logger => logger.LogInformation(It.IsAny<string>(), It.IsAny<object[]>()),
-   //            Times.AtLeastOnce
-   //        );
-   //    }
-   //
-   //    [Test]
-   //    public async Task Handle_ShouldReturnFailure_WhenRepositoryFails()
-   //    {
-   //        // Arrange
-   //        var newAuthor = new Author { Name = "Test Author" };
-   //        var command = new AddAuthorCommand(newAuthor);
-   //
-   //        _authorRepositoryMock
-   //            .Setup(repo => repo.AddAuthor(newAuthor))
-   //            .ReturnsAsync(OperationResult<Author>.Failure("Failed to add author.", "Database error."));
-   //
-   //        // Act
-   //        var result = await _handler.Handle(command, CancellationToken.None);
-   //
-   //        // Assert
-   //        Assert.That(result.IsSuccess, Is.False, "The operation should fail.");
-   //        Assert.That(result.ErrorMessage, Is.EqualTo("Failed to add author."), "The error message should match.");
-   //        _authorRepositoryMock.Verify(repo => repo.AddAuthor(newAuthor), Times.Once);
-   //        _loggerMock.Verify(
-   //            logger => logger.LogWarning(It.IsAny<string>(), It.IsAny<object[]>()),
-   //            Times.AtLeastOnce
-   //        );
-   //    }
-   //
-   //    [Test]
-   //    public void Handle_ShouldThrowArgumentNullException_WhenAuthorIsNull()
-   //    {
-   //        // Arrange
-   //        var command = new AddAuthorCommand(null);
-   //
-   //        // Act & Assert
-   //        Assert.ThrowsAsync<ArgumentNullException>(async () => await _handler.Handle(command, CancellationToken.None));
-   //        _authorRepositoryMock.Verify(repo => repo.AddAuthor(It.IsAny<Author>()), Times.Never);
-   //        _loggerMock.Verify(
-   //            logger => logger.LogError(It.IsAny<ArgumentNullException>(), It.IsAny<string>(), It.IsAny<object[]>()),
-   //            Times.Once
-   //        );
-   //    }
-   //
-   //    [Test]
-   //    public async Task Handle_ShouldReturnFailure_WhenAuthorNameIsEmpty()
-   //    {
-   //        // Arrange
-   //        var newAuthor = new Author { Name = "" };
-   //        var command = new AddAuthorCommand(newAuthor);
-   //
-   //        // Act & Assert
-   //        var result = await _handler.Handle(command, CancellationToken.None);
-   //
-   //        Assert.That(result.IsSuccess, Is.False, "The operation should fail.");
-   //        Assert.That(result.ErrorMessage, Is.EqualTo("Author name must not be empty."), "The error message should match.");
-   //        _authorRepositoryMock.Verify(repo => repo.AddAuthor(It.IsAny<Author>()), Times.Never);
-   //        _loggerMock.Verify(
-   //            logger => logger.LogWarning(It.IsAny<string>(), It.IsAny<object[]>()),
-   //            Times.AtLeastOnce
-   //        );
-   //    }
-   //}
+   [TestFixture]
+   public class AddAuthorCommandHandlerTests
+   {
+        private AddAuthorCommandHandler _handler;
+        private IAuthorRepository _mockAuthorRepository;
+        private ILogger<AddAuthorCommandHandler> _mockLogger;
+
+        [SetUp]
+        public void Setup()
+        {
+            // Mocka repositoryn
+            _mockAuthorRepository = A.Fake<IAuthorRepository>();
+
+            _mockLogger = A.Fake<ILogger<AddAuthorCommandHandler>>();
+
+            // Skapa handlern med mockad repository
+            _handler = new AddAuthorCommandHandler(_mockAuthorRepository, _mockLogger);
+        }
+        [Test]
+        public async Task Handle_ShouldAddAuthorSuccessfully_WhenRepositoryReturnsSuccess()
+        {
+            // Arrange
+            // Skapa en AuthorDto för att skicka med i kommandot
+            var authorDto = new AuthorDto { Name = "Hugo" };
+            var command = new AddAuthorCommand(authorDto);  // Skicka DTO i kommandot
+
+            // Konvertera AuthorDto till Author innan vi skickar det till repositoryn
+            var author = new Author { Name = authorDto.Name };  // Skapa ett domänobjekt från DTO
+
+            // Mocka resultatet från repositoryn
+            A.CallTo(() => _mockAuthorRepository.AddAuthor(A<AuthorDto>.Ignored))
+                .Returns(Task.FromResult(OperationResult<Author>.Success(author, "Author added successfully.")));
+
+            // Act
+            var result = await _handler.Handle(command, default);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual("Hugo", result.Data.Name);
+            A.CallTo(() => _mockAuthorRepository.AddAuthor(A<AuthorDto>.Ignored)).MustHaveHappenedOnceExactly();
+        }
+
+        [Test]
+        public async Task Handle_ShouldReturnFailure_WhenRepositoryFailsToAddAuthor()
+        {
+            // Arrange
+            var authorDto = new AuthorDto { Name = "Hugo" };
+            var command = new AddAuthorCommand(authorDto);  // Skicka DTO i kommandot
+
+            // Mocka ett misslyckande från repositoryn
+            A.CallTo(() => _mockAuthorRepository.AddAuthor(A<AuthorDto>.Ignored))
+                .Returns(Task.FromResult(OperationResult<Author>.Failure("Failed to add author.")));
+
+            // Act
+            var result = await _handler.Handle(command, default);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("Failed to add author.", result.ErrorMessage);
+            A.CallTo(() => _mockAuthorRepository.AddAuthor(A<AuthorDto>.Ignored)).MustHaveHappenedOnceExactly();
+        }
+        [Test]
+        public async Task Handle_ShouldReturnFailure_WhenAuthorHasInvalidData()
+        {
+            // Arrange
+            var invalidAuthor = new AuthorDto { Name = "" }; // Tomt namn
+            var command = new AddAuthorCommand(invalidAuthor);
+
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("Author name cannot be empty", result.ErrorMessage); // Kontrollera felmeddelandet
+        }
+        [Test]
+        public async Task Handle_ShouldReturnFailure_WhenRepositoryReturnsNull()
+        {
+            // Arrange
+            var authorToAdd = new AuthorDto { Name = "New Author" };
+            var command = new AddAuthorCommand(authorToAdd);
+
+            // Mocka repository-anropet och konfigurera det att returnera ett failure-svar
+            A.CallTo(() => _mockAuthorRepository.AddAuthor(A<AuthorDto>.Ignored))
+                .Returns(Task.FromResult(OperationResult<Author>.Failure("Failed to add author")));
+
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("Failed to add author.", result.ErrorMessage);
+        }
+        [Test]
+        public async Task Handle_ShouldReturnSuccess_WhenAuthorIsAddedSuccessfully()
+        {
+            // Arrange
+            var authorToAdd = new AuthorDto { Name = "Valid Author" };
+            var command = new AddAuthorCommand(authorToAdd);
+
+            var expectedAuthor = new Author { Id = 1, Name = "Valid Author" };
+            A.CallTo(() => _mockAuthorRepository.AddAuthor(A<AuthorDto>.Ignored))
+                .Returns(Task.FromResult(OperationResult<Author>.Success(expectedAuthor, "Author added successfully")));
+
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual("Valid Author", result.Data.Name);
+            Assert.AreEqual(1, result.Data.Id);
+        }
+    }
 }

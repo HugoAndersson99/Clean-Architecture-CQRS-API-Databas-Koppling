@@ -80,10 +80,10 @@ namespace WebAPI.Controllers
         [Route("AddNewAuthor")]
         public async Task<IActionResult> Post([FromBody] AuthorDto authorToAdd)
         {
-            if (authorToAdd == null)
+            if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Author details were not provided.");
-                return BadRequest("Author details must be provided.");
+                // Returnera valideringsfel
+                return BadRequest(ModelState);
             }
 
             var result = await _mediator.Send(new AddAuthorCommand(authorToAdd));
@@ -104,11 +104,12 @@ namespace WebAPI.Controllers
         [Route("updateAuthor/{updatedAuthorId}")]
         public async Task<IActionResult> UpdateAuthor([FromBody] AuthorDto updatedAuthor, int updatedAuthorId)
         {
-            if (updatedAuthor == null)
+            if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Invalid author data provided for update.");
-                return BadRequest("Author details are incorrect.");
+                // Returnera valideringsfel
+                return BadRequest(ModelState);
             }
+
 
             var result = await _mediator.Send(new UpdateAuthorByIdCommand(updatedAuthor, updatedAuthorId));
 

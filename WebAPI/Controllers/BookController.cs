@@ -78,13 +78,14 @@ namespace WebAPI.Controllers
         [Authorize]
         [HttpPost]
         [Route("AddNewBook")]
-        public async Task<IActionResult> Post([FromBody] BookDto bookToAdd)
+        public async Task<IActionResult> AddBook([FromBody] BookDto bookToAdd)
         {
-            if (bookToAdd == null)
+            if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Book details were not provided.");
-                return BadRequest("Book details must be provided.");
+                // Returnera valideringsfel
+                return BadRequest(ModelState);
             }
+
 
             var result = await _mediator.Send(new AddBookCommand(bookToAdd));
 
@@ -104,10 +105,10 @@ namespace WebAPI.Controllers
         [Route("updateBook/{updatedBookId}")]
         public async Task<IActionResult> UpdateBook([FromBody] BookDto updatedBook, int updatedBookId)
         {
-            if (updatedBook == null)
+            if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Invalid book data provided for update.");
-                return BadRequest("Book details are incorrect.");
+                // Returnera valideringsfel
+                return BadRequest(ModelState);
             }
 
             var result = await _mediator.Send(new UpdateBookByIdCommand(updatedBookId, updatedBook));

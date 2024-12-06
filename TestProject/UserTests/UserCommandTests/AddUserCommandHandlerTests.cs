@@ -2,6 +2,7 @@
 using Application.Commands.Users.AddNewUser;
 using Application.Interfaces.RepositoryInterfaces;
 using Domain;
+using FakeItEasy;
 using Infrastructure.Repositories;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -11,57 +12,83 @@ namespace TestProject.UserTests.UserCommandTests
     [TestFixture]
     public class AddUserCommandHandlerTests
     {
-        private Mock<IUserRepository> _mockUserRepository;
-        private Mock<ILogger<UserRepository>> _mockLogger;
         private AddNewUserCommandHandler _handler;
+        private IUserRepository _mockUserRepository;
+        private ILogger<AddNewUserCommandHandler> _mockLogger;
 
         [SetUp]
-        public void SetUp()
+        public void Setup()
         {
-            _mockUserRepository = new Mock<IUserRepository>();
-            _mockLogger = new Mock<ILogger<UserRepository>>();
-
-            _handler = new AddNewUserCommandHandler(_mockUserRepository.Object);
+            _mockUserRepository = A.Fake<IUserRepository>();
+            _mockLogger = A.Fake<ILogger<AddNewUserCommandHandler>>();
+            _handler = new AddNewUserCommandHandler(_mockUserRepository, _mockLogger);
         }
 
         [Test]
-        public async Task Handle_ShouldReturnSuccess_WhenUserAdded()
+        public async Task Handle_ShouldReturnSuccess_WhenUserIsAddedSuccessfully()
         {
             // Arrange
             var userDto = new UserDto { UserName = "testuser", Password = "password123" };
             var command = new AddNewUserCommand(userDto);
-            var userToAdd = new User { Id = Guid.NewGuid(), UserName = userDto.UserName, Password = userDto.Password };
 
-            _mockUserRepository
-                .Setup(repo => repo.AddUserAsync(It.IsAny<User>()))
-                .ReturnsAsync(OperationResult<User>.Success(userToAdd, "User added successfully."));
+            var operationResult = OperationResult<User>.Success(
+                new User { Id = Guid.NewGuid(), UserName = userDto.UserName, Password = userDto.Password },
+                "User added successfully.");
+
+            A.CallTo(() => _mockUserRepository.AddUserAsync(A<User>.Ignored))
+                .Returns(Task.FromResult(operationResult));
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
 
             // Assert
-            Assert.That(result.IsSuccess, Is.True);
-            _mockLogger.Verify(logger => logger.LogInformation(It.IsAny<string>(), It.IsAny<object[]>()), Times.AtLeastOnce);
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual("User added successfully.", result.Message);
         }
+
+        
         [Test]
-        public async Task Handle_ShouldReturnFailure_WhenAddUserFails()
+        public async Task Handle_ShouldAddUser_WhenValidDataIsProvided()
         {
             // Arrange
-            var userDto = new UserDto { UserName = "testuser", Password = "password123" };
-            var command = new AddNewUserCommand(userDto);
-            var exceptionMessage = "Database error occurred.";
+            var newUser = new UserDto { UserName = "NewUser", Password = "Password123" };
+            var createdUser = new User { Id = Guid.NewGuid(), UserName = "NewUser", Password = "Password123" };
 
-            _mockUserRepository
-                .Setup(repo => repo.AddUserAsync(It.IsAny<User>()))
-                .ReturnsAsync(OperationResult<User>.Failure(exceptionMessage, "Database error"));
+            A.CallTo(() => _mockUserRepository.AddUserAsync(A<User>.Ignored))
+                .Returns(Task.FromResult(OperationResult<User>.Success(createdUser, "User added successfully.")));
+
+            var command = new AddNewUserCommand(newUser);
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
 
             // Assert
-            Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.ErrorMessage, Is.EqualTo(exceptionMessage));
-            _mockLogger.Verify(logger => logger.LogError(It.IsAny<Exception>(), It.IsAny<string>(), It.IsAny<object[]>()), Times.AtLeastOnce);
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual("User added successfully.", result.Message);
+            Assert.AreEqual("NewUser", result.Data.UserName);
+
+            A.CallTo(() => _mockUserRepository.AddUserAsync(A<User>.That.Matches(u => u.UserName == "NewUser")))
+                .MustHaveHappenedOnceExactly();
+        }
+
+        [Test]
+        public async Task Handle_ShouldReturnFailure_WhenRepositoryThrowsException()
+        {
+            // Arrange
+            var newUser = new UserDto { UserName = "TestUser", Password = "Password123" };
+
+            // Simulera ett undantag i repositoryn
+            A.CallTo(() => _mockUserRepository.AddUserAsync(A<User>.Ignored))
+                .Throws(new Exception("Database error."));
+
+            var command = new AddNewUserCommand(newUser);
+
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.IsFalse(result.IsSuccess); // Det ska vara ett misslyckat resultat
+            Assert.AreEqual("Database error.", result.Message); // Kontrollera exakt felmeddelande
         }
     }
 }

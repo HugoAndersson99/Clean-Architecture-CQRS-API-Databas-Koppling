@@ -1,6 +1,8 @@
 ﻿using Application.Interfaces.RepositoryInterfaces;
+using Application.Queries.Books.GetAll;
 using Application.Queries.Books.GetById;
 using Domain;
+using FakeItEasy;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -9,73 +11,71 @@ namespace TestProject.BookTests.QueryTests
     [TestFixture]
     public class GetBookByIdQueryHandlerTests
     {
-        private Mock<IBookRepository> _bookRepositoryMock;
-        private Mock<ILogger<GetBookByIdQueryHandler>> _loggerMock;
         private GetBookByIdQueryHandler _handler;
+        private IBookRepository _mockBookRepository;
+        private ILogger<GetBookByIdQueryHandler> _mockLogger;
 
         [SetUp]
         public void Setup()
         {
-            _bookRepositoryMock = new Mock<IBookRepository>();
-            _loggerMock = new Mock<ILogger<GetBookByIdQueryHandler>>();
-            _handler = new GetBookByIdQueryHandler(_bookRepositoryMock.Object, _loggerMock.Object);
-        }
+            // Mocka repository
+            _mockBookRepository = A.Fake<IBookRepository>();
 
+            // Mocka logger
+            _mockLogger = A.Fake<ILogger<GetBookByIdQueryHandler>>();
+
+            // Skapa handlern med mockad repository
+            _handler = new GetBookByIdQueryHandler(_mockBookRepository, _mockLogger);
+        }
         [Test]
-        public async Task Handle_ShouldReturnBook_WhenBookExists()
+        public async Task Handle_ShouldReturnSuccess_WhenBookIsFound()
         {
             // Arrange
-            var book = new Book { Id = 1, Title = "Book 1", Description = "Description 1", Author = new Author { Id = 1, Name = "Author 1" } };
-            var command = new GetBookByIdQuery(1);
+            var book = new Book { Id = 1, Title = "Test Book", Description = "Test Description" };
 
-            _bookRepositoryMock
-                .Setup(repo => repo.GetBookById(1))
-                .ReturnsAsync(OperationResult<Book>.Success(book, "Book retrieved successfully."));
+            // Simulera ett lyckat resultat från GetBookById
+            A.CallTo(() => _mockBookRepository.GetBookById(1))
+                .Returns(OperationResult<Book>.Success(book, "Book retrieved successfully."));
 
             // Act
-            var result = await _handler.Handle(command, CancellationToken.None);
+            var result = await _handler.Handle(new GetBookByIdQuery(1), CancellationToken.None);
 
             // Assert
             Assert.IsTrue(result.IsSuccess);
-            Assert.AreEqual("Book retrieved successfully.", result.Message);
-            Assert.AreEqual(1, result.Data.Id);
-            _bookRepositoryMock.Verify(repo => repo.GetBookById(1), Times.Once);
+            Assert.AreEqual("Test Book", result.Data.Title);
+            Assert.AreEqual("Test Description", result.Data.Description);
         }
 
         [Test]
         public async Task Handle_ShouldReturnFailure_WhenBookNotFound()
         {
             // Arrange
-            var command = new GetBookByIdQuery(99);  // Non-existing book ID
-
-            _bookRepositoryMock
-                .Setup(repo => repo.GetBookById(99))
-                .ReturnsAsync(OperationResult<Book>.Failure("No book found with the given Id.", "Database error."));
+            // Simulera att boken inte hittas i repository
+            A.CallTo(() => _mockBookRepository.GetBookById(1))
+                .Returns(OperationResult<Book>.Failure("Book not found.", "Database error."));
 
             // Act
-            var result = await _handler.Handle(command, CancellationToken.None);
+            var result = await _handler.Handle(new GetBookByIdQuery(1), CancellationToken.None);
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("No book found with the given Id.", result.Message);
+            Assert.AreEqual("Book not found.", result.ErrorMessage);
         }
 
         [Test]
-        public async Task Handle_ShouldReturnFailure_WhenErrorOccurs()
+        public async Task Handle_ShouldReturnFailure_WhenExceptionOccurs()
         {
             // Arrange
-            var command = new GetBookByIdQuery(1);
-
-            _bookRepositoryMock
-                .Setup(repo => repo.GetBookById(1))
-                .ReturnsAsync(OperationResult<Book>.Failure("An error occurred while retrieving the book."));
+            // Simulera att ett undantag inträffar i repository
+            A.CallTo(() => _mockBookRepository.GetBookById(1))
+                .Throws(new Exception("Database failure"));
 
             // Act
-            var result = await _handler.Handle(command, CancellationToken.None);
+            var result = await _handler.Handle(new GetBookByIdQuery(1), CancellationToken.None);
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("An error occurred while retrieving the book.", result.Message);
+            Assert.AreEqual("An error occurred: Database failure", result.ErrorMessage);
         }
     }
 }

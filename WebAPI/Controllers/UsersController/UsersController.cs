@@ -43,10 +43,10 @@ namespace WebAPI.Controllers.UsersController
         [Route("register")]
         public async Task<IActionResult> RegisterUser([FromBody] UserDto newUser)
         {
-            if (newUser == null || string.IsNullOrWhiteSpace(newUser.UserName) || string.IsNullOrWhiteSpace(newUser.Password))
+            if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Registration attempt failed: missing user credentials.");
-                return BadRequest("User credentials are required.");
+                // Returnera valideringsfel
+                return BadRequest(ModelState);
             }
 
             var result = await _mediator.Send(new AddNewUserCommand(newUser));
@@ -66,11 +66,12 @@ namespace WebAPI.Controllers.UsersController
         [Route("login")]
         public async Task<IActionResult> LoginUser([FromBody] UserDto loginUser)
         {
-            if (loginUser == null || string.IsNullOrWhiteSpace(loginUser.UserName) || string.IsNullOrWhiteSpace(loginUser.Password))
+            if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Login attempt failed: missing user credentials.");
-                return BadRequest("User credentials are required.");
+                // Returnera valideringsfel
+                return BadRequest(ModelState);
             }
+            
 
             var result = await _mediator.Send(new LoginUserQuery(loginUser));
 

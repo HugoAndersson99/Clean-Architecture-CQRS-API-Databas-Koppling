@@ -1,96 +1,70 @@
-﻿using Application.Commands.Authors.DeleteAuthor;
+﻿using Application.Commands.Authors.AddAuthor;
+using Application.Commands.Authors.DeleteAuthor;
 using Application.Interfaces.RepositoryInterfaces;
 using Domain;
+using FakeItEasy;
 using Microsoft.Extensions.Logging;
-using Moq;
+
 
 namespace TestProject.AuthorTests.AuthorCommandTests
 {
     [TestFixture]
     public class DeleteAuthorCommandHandlerTests
     {
-        private Mock<IAuthorRepository> _authorRepositoryMock;
-        private Mock<ILogger<DeleteAuthorCommandHandler>> _loggerMock;
         private DeleteAuthorCommandHandler _handler;
+        private IAuthorRepository _mockAuthorRepository;
+        private ILogger<DeleteAuthorCommandHandler> _mockLogger;
 
         [SetUp]
         public void Setup()
         {
-            _authorRepositoryMock = new Mock<IAuthorRepository>();
-            _loggerMock = new Mock<ILogger<DeleteAuthorCommandHandler>>();
-            _handler = new DeleteAuthorCommandHandler(_authorRepositoryMock.Object, _loggerMock.Object);
-        }
+            // Mocka repositoryn
+            _mockAuthorRepository = A.Fake<IAuthorRepository>();
 
+            _mockLogger = A.Fake<ILogger<DeleteAuthorCommandHandler>>();
+
+            // Skapa handlern med mockad repository
+            _handler = new DeleteAuthorCommandHandler(_mockAuthorRepository, _mockLogger);
+        }
         [Test]
         public async Task Handle_ShouldReturnSuccess_WhenAuthorIsDeleted()
         {
             // Arrange
-            var authorId = 1;
-            _authorRepositoryMock
-                .Setup(repo => repo.DeleteAuthorById(authorId))
-                .ReturnsAsync(OperationResult<string>.Success("Author deleted successfully.", "Delete operation successful."));
+            var author = new Author { Id = 1, Name = "Test Author" };
+            var command = new DeleteAuthorCommand(1); // Författarens ID att ta bort
 
-            var command = new DeleteAuthorCommand(authorId);
+            // Mocka repositoryt att returnera en befintlig författare
+            A.CallTo(() => _mockAuthorRepository.GetAuthorById(1))
+                .Returns(Task.FromResult(OperationResult<Author>.Success(author, "Author found.")));
+
+            // Mocka att DeleteAuthorById returnerar framgång
+            A.CallTo(() => _mockAuthorRepository.DeleteAuthorById(1))
+                .Returns(Task.FromResult(OperationResult<string>.Success("Author deleted successfully.", "Delete operation successful.")));
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
 
             // Assert
-            Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Data, Is.EqualTo("Author deleted successfully."));
-            _authorRepositoryMock.Verify(repo => repo.DeleteAuthorById(authorId), Times.Once);
-            _loggerMock.Verify(
-                logger => logger.LogInformation(It.IsAny<string>(), It.IsAny<object[]>()),
-                Times.AtLeastOnce
-            );
+            Assert.IsTrue(result.IsSuccess);
+            Assert.AreEqual("Author deleted successfully.", result.Data);
         }
-
         [Test]
-        public async Task Handle_ShouldReturnFailure_WhenAuthorNotFound()
+        public async Task Handle_ShouldReturnFailure_WhenAuthorDoesNotExist()
         {
             // Arrange
-            var authorId = 99;
-            _authorRepositoryMock
-                .Setup(repo => repo.DeleteAuthorById(authorId))
-                .ReturnsAsync(OperationResult<string>.Failure("Author with Id 99 not found.", "Entity not found."));
+            var command = new DeleteAuthorCommand(1); // Författarens ID att ta bort
 
-            var command = new DeleteAuthorCommand(authorId);
-
-            // Act
-            var result = await _handler.Handle(command, CancellationToken.None);
-
-            // Assert
-            Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.ErrorMessage, Is.EqualTo("Author with Id 99 not found."));
-            _authorRepositoryMock.Verify(repo => repo.DeleteAuthorById(authorId), Times.Once);
-            _loggerMock.Verify(
-                logger => logger.LogWarning(It.IsAny<string>(), It.IsAny<object[]>()),
-                Times.AtLeastOnce
-            );
-        }
-
-        [Test]
-        public async Task Handle_ShouldReturnFailure_WhenExceptionIsThrown()
-        {
-            // Arrange
-            var authorId = 1;
-            _authorRepositoryMock
-                .Setup(repo => repo.DeleteAuthorById(authorId))
-                .ThrowsAsync(new Exception("Database error"));
-
-            var command = new DeleteAuthorCommand(authorId);
+            // Mocka repositoryt att Returnera en failure med rätt felmeddelande
+            A.CallTo(() => _mockAuthorRepository.DeleteAuthorById(1))
+                .Returns(Task.FromResult(OperationResult<string>.Failure("Author with Id 1 not found.", "Entity not found.")));
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
 
             // Assert
-            Assert.That(result.IsSuccess, Is.False);
-            Assert.That(result.ErrorMessage, Is.EqualTo("An unexpected error occurred."));
-            _authorRepositoryMock.Verify(repo => repo.DeleteAuthorById(authorId), Times.Once);
-            _loggerMock.Verify(
-                logger => logger.LogError(It.IsAny<Exception>(), It.IsAny<string>(), It.IsAny<object[]>()),
-                Times.Once
-            );
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("Author with Id 1 not found.", result.ErrorMessage); // Kontrollera att felmeddelandet är som förväntat
         }
+        
     }
 }

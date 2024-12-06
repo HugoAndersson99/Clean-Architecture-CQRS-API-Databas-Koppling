@@ -45,26 +45,5 @@ namespace Application.Queries.Users.LoginUser
                 return OperationResult<string>.Failure($"An error occurred: {ex.Message}");
             }
         }
-
-       
-        // public async Task<OperationResult<User>> Handle(LoginUserQuery request, CancellationToken cancellationToken)
-        // {
-        //     var loginUser = request.LoginUser;
-        //     _logger.LogInformation("Handling LoginUserQuery for user {UserName}.", loginUser.UserName);
-        //
-        //     // Verifiera login med hjälp av UserRepository
-        //     var result = await _userRepository.LoginUserAsync(loginUser.UserName, loginUser.Password);
-        //
-        //     if (result.IsSuccess)
-        //     {
-        //         _logger.LogInformation("Login successful for user {UserName}.", loginUser.UserName);
-        //     }
-        //     else
-        //     {
-        //         _logger.LogWarning("Login failed for user {UserName}: {ErrorMessage}", loginUser.UserName, result.ErrorMessage);
-        //     }
-        //
-        //     return result;
-        // }
     }
 }
