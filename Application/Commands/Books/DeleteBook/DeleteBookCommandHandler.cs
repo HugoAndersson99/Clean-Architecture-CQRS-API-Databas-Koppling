@@ -22,7 +22,6 @@ namespace Application.Commands.Books.DeleteBook
 
             try
             {
-                // Anropa repository för att ta bort boken
                 var result = await _bookRepository.DeleteBook(request.BookId);
 
                 if (result.IsSuccess)

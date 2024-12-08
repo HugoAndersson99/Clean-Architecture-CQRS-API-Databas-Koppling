@@ -20,17 +20,14 @@ namespace Application.Queries.Authors.GetAllAuthors
         {
             try
             {
-                // Hämta alla författare från repositoryt
                 var result = await _authorRepository.GetAllAuthors();
 
-                // Om det inte finns några författare, returnera ett misslyckat resultat med rätt felmeddelande
                 if (result.Data == null || result.Data.Count == 0)
                 {
                     _logger.LogWarning("No authors found.");
                     return OperationResult<List<Author>>.Failure("No authors found.", "Empty list.");
                 }
 
-                // Om vi har författare, returnera dem med ett lyckat resultat
                 return result;
             }
             catch (Exception ex)

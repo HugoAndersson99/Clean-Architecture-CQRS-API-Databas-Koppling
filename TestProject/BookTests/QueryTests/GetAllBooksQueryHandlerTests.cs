@@ -3,7 +3,6 @@ using Application.Queries.Books.GetAll;
 using Domain;
 using FakeItEasy;
 using Microsoft.Extensions.Logging;
-using Moq;
 
 namespace TestProject.BookTests.QueryTests
 {
@@ -17,13 +16,10 @@ namespace TestProject.BookTests.QueryTests
         [SetUp]
         public void Setup()
         {
-            // Mocka repository
             _mockBookRepository = A.Fake<IBookRepository>();
 
-            // Mocka logger
             _mockLogger = A.Fake<ILogger<GetAllBooksQueryHandler>>();
 
-            // Skapa handlern med mockad repository
             _handler = new GetAllBooksQueryHandler(_mockBookRepository, _mockLogger);
         }
 
@@ -39,7 +35,6 @@ namespace TestProject.BookTests.QueryTests
 
             var command = new GetAllBooksQuery();
 
-            // Mocka så att repositoryt returnerar en lista av böcker
             A.CallTo(() => _mockBookRepository.GetAllBooks())
                 .Returns(Task.FromResult(OperationResult<List<Book>>.Success(books, "Books retrieved successfully.")));
 
@@ -58,7 +53,6 @@ namespace TestProject.BookTests.QueryTests
             // Arrange
             var command = new GetAllBooksQuery();
 
-            // Mocka så att repositoryt returnerar ett misslyckande
             A.CallTo(() => _mockBookRepository.GetAllBooks())
                 .Returns(Task.FromResult(OperationResult<List<Book>>.Failure("No books found.", "Database error.")));
 

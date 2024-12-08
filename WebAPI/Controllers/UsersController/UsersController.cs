@@ -31,11 +31,11 @@ namespace WebAPI.Controllers.UsersController
 
             if (result.IsSuccess)
             {
-                return Ok(result.Data); // Return the list of all users.
+                return Ok(result.Data);
             }
 
             _logger.LogWarning("Failed to fetch users. Error: {ErrorMessage}", result.Message);
-            return BadRequest(result.Message); // Return BadRequest if fetching users fails.
+            return BadRequest(result.Message);
         }
 
         [AllowAnonymous]
@@ -45,7 +45,6 @@ namespace WebAPI.Controllers.UsersController
         {
             if (!ModelState.IsValid)
             {
-                // Returnera valideringsfel
                 return BadRequest(ModelState);
             }
 
@@ -54,11 +53,11 @@ namespace WebAPI.Controllers.UsersController
             if (result.IsSuccess)
             {
                 _logger.LogInformation("User {UserName} registered successfully.", newUser.UserName);
-                return CreatedAtAction(nameof(GetAllUsers), result.Data); // Redirect to GetAllUsers after successful registration
+                return CreatedAtAction(nameof(GetAllUsers), result.Data);
             }
 
             _logger.LogWarning("Registration failed for user: {UserName}. Error: {ErrorMessage}", newUser.UserName, result.Message);
-            return BadRequest(result.Message); // Return BadRequest if registration fails.
+            return BadRequest(result.Message);
         }
 
         [AllowAnonymous]
@@ -68,7 +67,6 @@ namespace WebAPI.Controllers.UsersController
         {
             if (!ModelState.IsValid)
             {
-                // Returnera valideringsfel
                 return BadRequest(ModelState);
             }
             
@@ -78,11 +76,11 @@ namespace WebAPI.Controllers.UsersController
             if (result.IsSuccess)
             {
                 _logger.LogInformation("User {UserName} logged in successfully.", loginUser.UserName);
-                return Ok(result.Data); // The result should be a JWT token or success message.
+                return Ok(result.Data);
             }
 
             _logger.LogWarning("Login failed for user: {UserName}. Error: {ErrorMessage}", loginUser.UserName, result.Message);
-            return Unauthorized(result.Message); // Return Unauthorized if login fails.
+            return Unauthorized(result.Message);
         }
         
     }

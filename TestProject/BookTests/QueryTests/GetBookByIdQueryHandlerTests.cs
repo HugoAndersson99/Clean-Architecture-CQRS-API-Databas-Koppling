@@ -4,7 +4,6 @@ using Application.Queries.Books.GetById;
 using Domain;
 using FakeItEasy;
 using Microsoft.Extensions.Logging;
-using Moq;
 
 namespace TestProject.BookTests.QueryTests
 {
@@ -18,13 +17,10 @@ namespace TestProject.BookTests.QueryTests
         [SetUp]
         public void Setup()
         {
-            // Mocka repository
             _mockBookRepository = A.Fake<IBookRepository>();
 
-            // Mocka logger
             _mockLogger = A.Fake<ILogger<GetBookByIdQueryHandler>>();
 
-            // Skapa handlern med mockad repository
             _handler = new GetBookByIdQueryHandler(_mockBookRepository, _mockLogger);
         }
         [Test]
@@ -33,7 +29,6 @@ namespace TestProject.BookTests.QueryTests
             // Arrange
             var book = new Book { Id = 1, Title = "Test Book", Description = "Test Description" };
 
-            // Simulera ett lyckat resultat från GetBookById
             A.CallTo(() => _mockBookRepository.GetBookById(1))
                 .Returns(OperationResult<Book>.Success(book, "Book retrieved successfully."));
 
@@ -50,7 +45,6 @@ namespace TestProject.BookTests.QueryTests
         public async Task Handle_ShouldReturnFailure_WhenBookNotFound()
         {
             // Arrange
-            // Simulera att boken inte hittas i repository
             A.CallTo(() => _mockBookRepository.GetBookById(1))
                 .Returns(OperationResult<Book>.Failure("Book not found.", "Database error."));
 
@@ -66,7 +60,6 @@ namespace TestProject.BookTests.QueryTests
         public async Task Handle_ShouldReturnFailure_WhenExceptionOccurs()
         {
             // Arrange
-            // Simulera att ett undantag inträffar i repository
             A.CallTo(() => _mockBookRepository.GetBookById(1))
                 .Throws(new Exception("Database failure"));
 

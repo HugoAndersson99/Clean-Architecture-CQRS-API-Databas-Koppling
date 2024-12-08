@@ -18,13 +18,10 @@ namespace TestProject.BookTests.CommandTests
         [SetUp]
         public void Setup()
         {
-            // Mocka repositoryn
             _mockBookRepository = A.Fake<IBookRepository>();
 
-            // Mocka loggern
             _mockLogger = A.Fake<ILogger<DeleteBookCommandHandler>>();
 
-            // Skapa handlern med mockad repository
             _handler = new DeleteBookCommandHandler(_mockBookRepository, _mockLogger);
         }
 
@@ -32,10 +29,9 @@ namespace TestProject.BookTests.CommandTests
         public async Task Handle_ShouldReturnSuccess_WhenBookIsDeleted()
         {
             // Arrange
-            var bookId = 1; // Exempel på ID för bok
+            var bookId = 1;
             var command = new DeleteBookCommand(bookId);
 
-            // Mocka så att repositoryt returnerar en lyckad operation vid borttagning
             A.CallTo(() => _mockBookRepository.DeleteBook(bookId))
                 .Returns(Task.FromResult(OperationResult<Book>.Success(null, "Book deleted successfully.")));
 
@@ -51,10 +47,9 @@ namespace TestProject.BookTests.CommandTests
         public async Task Handle_ShouldReturnFailure_WhenBookDoesNotExist()
         {
             // Arrange
-            var bookId = 1; // Exempel på ID för bok som inte finns
+            var bookId = 1;
             var command = new DeleteBookCommand(bookId);
 
-            // Mocka så att repositoryt returnerar ett misslyckande (bok inte funnen)
             A.CallTo(() => _mockBookRepository.DeleteBook(bookId))
                 .Returns(Task.FromResult(OperationResult<Book>.Failure("Book not found.", "Database error.")));
 
@@ -70,10 +65,9 @@ namespace TestProject.BookTests.CommandTests
         public async Task Handle_ShouldReturnFailure_WhenRepositoryFails()
         {
             // Arrange
-            var bookId = 1; // Exempel på ID för bok
+            var bookId = 1;
             var command = new DeleteBookCommand(bookId);
 
-            // Mocka så att repositoryt returnerar ett generellt fel
             A.CallTo(() => _mockBookRepository.DeleteBook(bookId))
                 .Returns(Task.FromResult(OperationResult<Book>.Failure("An error occurred", "Database error.")));
 

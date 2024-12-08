@@ -22,7 +22,6 @@ namespace Application.Commands.Books.UpdateBook
 
             try
             {
-                // Anropa repository för att uppdatera boken
                 var result = await _bookRepository.UpdateBook(request.BookId, request.UpdatedBook);
 
                 if (result.IsSuccess)

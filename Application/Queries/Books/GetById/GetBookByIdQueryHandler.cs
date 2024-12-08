@@ -22,7 +22,6 @@ namespace Application.Queries.Books.GetById
 
             try
             {
-                // Anropa repository för att hämta boken baserat på ID
                 var result = await _bookRepository.GetBookById(request.Id);
 
                 if (result.IsSuccess)

@@ -19,20 +19,18 @@ namespace TestProject.AuthorTests.AuthorQueryTests
         [SetUp]
         public void Setup()
         {
-            // Mocka repositoryn och loggaren
             _mockAuthorRepository = A.Fake<IAuthorRepository>();
+
             _mockLogger = A.Fake<ILogger<GetAuthorByIdQueryHandler>>();
 
-            // Skapa handlern med mockad repository och logger
             _handler = new GetAuthorByIdQueryHandler(_mockAuthorRepository, _mockLogger);
         }
         [Test]
         public async Task Handle_ShouldReturnSuccess_WhenAuthorExists()
         {
             // Arrange
-            var command = new GetAuthorByIdQuery(1); // Författarens ID som ska hämtas
+            var command = new GetAuthorByIdQuery(1);
 
-            // Mocka repository så att den returnerar en författare
             var author = new Author { Id = 1, Name = "Test Author" };
             var mockResult = OperationResult<Author>.Success(author, "Author found successfully.");
 
@@ -52,15 +50,14 @@ namespace TestProject.AuthorTests.AuthorQueryTests
         public async Task Handle_ShouldReturnFailure_WhenAuthorNotFound()
         {
             // Arrange
-            var command = new GetAuthorByIdQuery(999); // Ett ID som inte existerar
+            int nonExistingId = 999;
+            var command = new GetAuthorByIdQuery(nonExistingId);
 
-            // Mocka repository så att den returnerar en misslyckad resultat
             var mockResult = OperationResult<Author>.Failure("Author not found", "No author with this ID.");
 
-            A.CallTo(() => _mockAuthorRepository.GetAuthorById(999))
+            A.CallTo(() => _mockAuthorRepository.GetAuthorById(nonExistingId))
                 .Returns(Task.FromResult(mockResult));
 
-            // Act
             var result = await _handler.Handle(command, CancellationToken.None);
 
             // Assert

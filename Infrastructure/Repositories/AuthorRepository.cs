@@ -74,13 +74,11 @@ namespace Infrastructure.Repositories
         {
             try
             {
-                // Hämta alla författare med deras böcker
-                var authors = await _database.Authors
-                    .Include(a => a.Books) // Inkludera böcker kopplade till författaren
+                var authorsFromDb = await _database.Authors
+                    .Include(a => a.Books)
                     .ToListAsync();
 
-                // Skapa ett resultat utan att inkludera författarinformation i böckerna
-                var authorsWithBooks = authors.Select(a => new Author
+                var authorsWithBooks = authorsFromDb.Select(a => new Author
                 {
                     Id = a.Id,
                     Name = a.Name,
@@ -89,7 +87,6 @@ namespace Infrastructure.Repositories
                         Id = b.Id,
                         Title = b.Title,
                         Description = b.Description
-                        // Här tar vi bort Author-objektet från boken för att slippa redundans
                     }).ToList()
                 }).ToList();
 
@@ -113,28 +110,25 @@ namespace Infrastructure.Repositories
         {
             try
             {
-                // Hämta författaren med dess böcker
-                var author = await _database.Authors
-                    .Include(a => a.Books) // Inkludera böcker kopplade till författaren
+                var authorFromDb = await _database.Authors
+                    .Include(a => a.Books)
                     .FirstOrDefaultAsync(a => a.Id == id);
 
-                if (author == null)
+                if (authorFromDb == null)
                 {
                     _logger.LogWarning($"No author found with Id {id}.");
                     return OperationResult<Author>.Failure("Author not found.", "Invalid Id.");
                 }
 
-                // Skapa AuthorDto med böcker, men utan författare i böckerna
                 var authorDto = new Author
                 {
-                    Id = author.Id,
-                    Name = author.Name,
-                    Books = author.Books.Select(b => new Book
+                    Id = authorFromDb.Id,
+                    Name = authorFromDb.Name,
+                    Books = authorFromDb.Books.Select(b => new Book
                     {
                         Id = b.Id,
                         Title = b.Title,
                         Description = b.Description
-                        // Här behåller vi inte författaren i boken
                     }).ToList()
                 };
 
@@ -160,27 +154,18 @@ namespace Infrastructure.Repositories
                     return OperationResult<Author>.Failure("Author not found", "Update failed");
                 }
 
-                // Logga när vi börjar uppdatera
                 _logger.LogInformation("Attempting to update author with Id {AuthorId}", id);
 
                 existingAuthor.Name = updatedAuthor.Name;
 
-                // Om vi har böcker att uppdatera
-               //if (updatedAuthor.Books != null)
-               //{
-               //    existingAuthor.Books = updatedAuthor.Books;
-               //}
-
                 await _database.SaveChangesAsync();
 
-                // Logga framgång
                 _logger.LogInformation("Successfully updated author with Id {AuthorId}", id);
 
                 return OperationResult<Author>.Success(existingAuthor, "Author updated successfully.");
             }
             catch (Exception ex)
             {
-                // Logga fel om något går fel
                 _logger.LogError(ex, "Error while updating author with Id {AuthorId}", id);
                 return OperationResult<Author>.Failure($"An error occurred: {ex.Message}", "Update error");
             }

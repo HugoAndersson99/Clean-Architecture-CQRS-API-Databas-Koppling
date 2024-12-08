@@ -82,7 +82,6 @@ namespace WebAPI.Controllers
         {
             if (!ModelState.IsValid)
             {
-                // Returnera valideringsfel
                 return BadRequest(ModelState);
             }
 
@@ -107,7 +106,6 @@ namespace WebAPI.Controllers
         {
             if (!ModelState.IsValid)
             {
-                // Returnera valideringsfel
                 return BadRequest(ModelState);
             }
 
