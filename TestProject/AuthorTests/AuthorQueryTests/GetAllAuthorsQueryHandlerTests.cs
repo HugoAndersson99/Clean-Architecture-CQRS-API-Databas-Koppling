@@ -3,6 +3,7 @@ using Application.Queries.Authors.GetAllAuthors;
 using Domain;
 using FakeItEasy;
 using Infrastructure.Database;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -14,6 +15,7 @@ namespace TestProject.AuthorTests.AuthorQueryTests
         private GetAllAuthorsQueryHandler _handler;
         private IAuthorRepository _mockAuthorRepository;
         private ILogger<GetAllAuthorsQueryHandler> _mockLogger;
+        //private readonly IMemoryCache _mockCache;
 
         [SetUp]
         public void Setup()
@@ -22,7 +24,9 @@ namespace TestProject.AuthorTests.AuthorQueryTests
 
             _mockLogger = A.Fake<ILogger<GetAllAuthorsQueryHandler>>();
 
-            _handler = new GetAllAuthorsQueryHandler(_mockAuthorRepository, _mockLogger);
+           var _mockCache = A.Fake<IMemoryCache>();
+
+            _handler = new GetAllAuthorsQueryHandler(_mockAuthorRepository, _mockLogger, _mockCache);
         }
         [Test]
         public async Task Handle_ShouldReturnSuccess_WhenAuthorsExist()

@@ -2,6 +2,7 @@
 using Application;
 using Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
@@ -71,7 +72,16 @@ namespace WebAPI
                 });
             });
 
-            builder.Services.AddControllers();
+            // builder.Services.AddControllers();
+            builder.Services.AddControllers(options =>
+            {
+                options.CacheProfiles.Add("DefaultCache", new CacheProfile()
+                {
+                    Duration = 60, // Cache i 60 sekunder
+                    Location = ResponseCacheLocation.Any,
+                });
+            });
+            builder.Services.AddMemoryCache();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();

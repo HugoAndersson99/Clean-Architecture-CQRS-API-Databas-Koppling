@@ -2,6 +2,7 @@
 using Application.Queries.Books.GetAll;
 using Domain;
 using FakeItEasy;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace TestProject.BookTests.QueryTests
@@ -20,7 +21,9 @@ namespace TestProject.BookTests.QueryTests
 
             _mockLogger = A.Fake<ILogger<GetAllBooksQueryHandler>>();
 
-            _handler = new GetAllBooksQueryHandler(_mockBookRepository, _mockLogger);
+            var _mockCache = A.Fake<IMemoryCache>();
+
+            _handler = new GetAllBooksQueryHandler(_mockBookRepository, _mockLogger, _mockCache);
         }
 
         [Test]
@@ -61,7 +64,7 @@ namespace TestProject.BookTests.QueryTests
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("Failed to retrieve books.", result.ErrorMessage);
+            Assert.AreEqual("No books found.", result.ErrorMessage);
         }
 
         

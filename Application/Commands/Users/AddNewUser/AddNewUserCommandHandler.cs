@@ -1,6 +1,4 @@
-﻿
-
-using Application.Interfaces.RepositoryInterfaces;
+﻿using Application.Interfaces.RepositoryInterfaces;
 using Domain;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -11,6 +9,7 @@ namespace Application.Commands.Users.AddNewUser
     {
         private readonly IUserRepository _userRepository;
         private readonly ILogger<AddNewUserCommandHandler> _logger;
+        
 
         public AddNewUserCommandHandler(IUserRepository userRepository, ILogger<AddNewUserCommandHandler> logger)
         {
@@ -26,8 +25,9 @@ namespace Application.Commands.Users.AddNewUser
             {
                 Id = Guid.NewGuid(),
                 UserName = request.NewUser.UserName,
-                Password = request.NewUser.Password
             };
+
+            userToCreate.Password = BCrypt.Net.BCrypt.HashPassword(request.NewUser.Password);
 
             try
             {

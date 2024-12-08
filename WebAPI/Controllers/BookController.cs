@@ -28,6 +28,7 @@ namespace WebAPI.Controllers
         [Authorize]
         [HttpGet]
         [Route("getAllBooks")]
+        [ResponseCache(CacheProfileName = "DefaultCache")]
         public async Task<IActionResult> GetAllBooksFromDB()
         {
             var operationResult = await _mediator.Send(new GetAllBooksQuery());
@@ -53,6 +54,7 @@ namespace WebAPI.Controllers
         [Authorize]
         [HttpGet]
         [Route("getBookById/{bookId}")]
+        [ResponseCache(CacheProfileName = "DefaultCache")]
         public async Task<IActionResult> GetBookById(int bookId)
         {
             var result = await _mediator.Send(new GetBookByIdQuery(bookId));

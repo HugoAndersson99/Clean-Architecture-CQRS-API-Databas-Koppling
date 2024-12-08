@@ -3,6 +3,7 @@ using Application.Queries.Books.GetAll;
 using Application.Queries.Books.GetById;
 using Domain;
 using FakeItEasy;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace TestProject.BookTests.QueryTests
@@ -21,7 +22,9 @@ namespace TestProject.BookTests.QueryTests
 
             _mockLogger = A.Fake<ILogger<GetBookByIdQueryHandler>>();
 
-            _handler = new GetBookByIdQueryHandler(_mockBookRepository, _mockLogger);
+            var _mockCache = A.Fake<IMemoryCache>();
+
+            _handler = new GetBookByIdQueryHandler(_mockBookRepository, _mockLogger, _mockCache);
         }
         [Test]
         public async Task Handle_ShouldReturnSuccess_WhenBookIsFound()

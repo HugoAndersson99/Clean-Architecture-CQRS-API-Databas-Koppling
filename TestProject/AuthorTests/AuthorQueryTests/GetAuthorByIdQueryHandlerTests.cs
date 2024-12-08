@@ -4,6 +4,7 @@ using Application.Queries.Authors.GetAuthorById;
 using Domain;
 using FakeItEasy;
 using Infrastructure.Database;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -23,7 +24,9 @@ namespace TestProject.AuthorTests.AuthorQueryTests
 
             _mockLogger = A.Fake<ILogger<GetAuthorByIdQueryHandler>>();
 
-            _handler = new GetAuthorByIdQueryHandler(_mockAuthorRepository, _mockLogger);
+            var _mochCache = A.Fake<IMemoryCache>();
+
+            _handler = new GetAuthorByIdQueryHandler(_mockAuthorRepository, _mockLogger, _mochCache);
         }
         [Test]
         public async Task Handle_ShouldReturnSuccess_WhenAuthorExists()
@@ -53,7 +56,7 @@ namespace TestProject.AuthorTests.AuthorQueryTests
             int nonExistingId = 999;
             var command = new GetAuthorByIdQuery(nonExistingId);
 
-            var mockResult = OperationResult<Author>.Failure("Author not found", "No author with this ID.");
+            var mockResult = OperationResult<Author>.Failure("Author not found.", "No author with this ID.");
 
             A.CallTo(() => _mockAuthorRepository.GetAuthorById(nonExistingId))
                 .Returns(Task.FromResult(mockResult));
@@ -62,7 +65,7 @@ namespace TestProject.AuthorTests.AuthorQueryTests
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("Author not found", result.ErrorMessage);
+            Assert.AreEqual("Author not found.", result.ErrorMessage);
         }
     }
 }
