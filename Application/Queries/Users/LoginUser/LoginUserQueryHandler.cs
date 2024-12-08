@@ -24,10 +24,16 @@ namespace Application.Queries.Users.LoginUser
             {
                 var user = await _userRepository.GetUserByUsernameAsync(request.LoginUser.UserName);
 
-                if (user == null || user.Password != request.LoginUser.Password)
+                if (user == null)
                 {
                     _logger.LogWarning("Invalid login attempt for username: {UserName}", request.LoginUser.UserName);
                     return OperationResult<string>.Failure("Invalid username or password");
+                }
+
+                if (!BCrypt.Net.BCrypt.Verify(request.LoginUser.Password, user.Password))
+                {
+                    _logger.LogWarning("Invalid password for user: {UserName}", request.LoginUser.UserName);
+                    return OperationResult<string>.Failure("Invalid password.", "Authentication error.");
                 }
 
                 string token = _tokenHelper.GenerateJwtToken(user);

@@ -30,6 +30,7 @@ namespace WebAPI.Controllers
         [Authorize]
         [HttpGet]
         [Route("getAllAuthors")]
+        [ResponseCache(CacheProfileName = "DefaultCache")]
         public async Task<IActionResult> GetAllAuthorsFromDB()
         {
             var operationResult = await _mediator.Send(new GetAllAuthorsQuery());
@@ -54,6 +55,7 @@ namespace WebAPI.Controllers
         [Authorize]
         [HttpGet]
         [Route("getAuthorById/{authorId}")]
+        [ResponseCache(CacheProfileName = "DefaultCache")]
         public async Task<IActionResult> GetAuthorById(int authorId)
         {
             var operationResult = await _mediator.Send(new GetAuthorByIdQuery(authorId));
