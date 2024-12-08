@@ -23,8 +23,6 @@ namespace Application.Commands.Books.AddBook
 
             try
             {
-                
-                // Anropa repository för att lägga till boken
                 var result = await _bookRepository.AddBook(request.NewBook);
 
                 if (result.IsSuccess)

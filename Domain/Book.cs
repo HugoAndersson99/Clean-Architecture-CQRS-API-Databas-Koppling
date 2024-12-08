@@ -10,7 +10,7 @@ namespace Domain
             Title = title;
             Description = description;
             Author = author;
-            AuthorId = author?.Id ?? 0; // Om en författare är satt, tilldela dess Id
+            AuthorId = author?.Id ?? 0;
         }
 
         public Book() { }
@@ -19,10 +19,10 @@ namespace Domain
         public string Title { get; set; }
         public string Description { get; set; }
 
-        // Navigation property
+        
         public Author Author { get; set; }
 
-        // Foreign Key
+        
         [JsonIgnore]
         public int AuthorId { get; set; }
     }

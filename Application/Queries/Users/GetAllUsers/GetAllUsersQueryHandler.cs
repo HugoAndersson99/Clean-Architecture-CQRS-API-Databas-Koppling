@@ -20,7 +20,6 @@ namespace Application.Queries.Users.GetAllUsers
         {
             _logger.LogInformation("Handling GetAllUsersQuery.");
 
-            // Hämta användare från repository
             var result = await _userRepository.GetAllUsersAsync();
 
             if (result.IsSuccess)

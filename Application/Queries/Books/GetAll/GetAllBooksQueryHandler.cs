@@ -24,7 +24,6 @@ namespace Application.Queries.Books.GetAll
 
             try
             {
-                // Anropa repository för att hämta alla böcker
                 var result = await _bookRepository.GetAllBooks();
 
                 if (result.IsSuccess)

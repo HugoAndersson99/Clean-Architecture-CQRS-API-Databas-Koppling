@@ -3,9 +3,6 @@ using Application.Commands.Authors.AddAuthor;
 using Application.Interfaces.RepositoryInterfaces;
 using Domain;
 using FakeItEasy;
-using Infrastructure;
-using Infrastructure.Repositories;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 
@@ -22,26 +19,21 @@ namespace TestProject.AuthorTests.AuthorCommandTests
         [SetUp]
         public void Setup()
         {
-            // Mocka repositoryn
             _mockAuthorRepository = A.Fake<IAuthorRepository>();
 
             _mockLogger = A.Fake<ILogger<AddAuthorCommandHandler>>();
 
-            // Skapa handlern med mockad repository
             _handler = new AddAuthorCommandHandler(_mockAuthorRepository, _mockLogger);
         }
         [Test]
         public async Task Handle_ShouldAddAuthorSuccessfully_WhenRepositoryReturnsSuccess()
         {
             // Arrange
-            // Skapa en AuthorDto för att skicka med i kommandot
             var authorDto = new AuthorDto { Name = "Hugo" };
-            var command = new AddAuthorCommand(authorDto);  // Skicka DTO i kommandot
+            var command = new AddAuthorCommand(authorDto);
 
-            // Konvertera AuthorDto till Author innan vi skickar det till repositoryn
-            var author = new Author { Name = authorDto.Name };  // Skapa ett domänobjekt från DTO
+            var author = new Author { Name = authorDto.Name };
 
-            // Mocka resultatet från repositoryn
             A.CallTo(() => _mockAuthorRepository.AddAuthor(A<AuthorDto>.Ignored))
                 .Returns(Task.FromResult(OperationResult<Author>.Success(author, "Author added successfully.")));
 
@@ -59,9 +51,8 @@ namespace TestProject.AuthorTests.AuthorCommandTests
         {
             // Arrange
             var authorDto = new AuthorDto { Name = "Hugo" };
-            var command = new AddAuthorCommand(authorDto);  // Skicka DTO i kommandot
+            var command = new AddAuthorCommand(authorDto);
 
-            // Mocka ett misslyckande från repositoryn
             A.CallTo(() => _mockAuthorRepository.AddAuthor(A<AuthorDto>.Ignored))
                 .Returns(Task.FromResult(OperationResult<Author>.Failure("Failed to add author.")));
 
@@ -77,7 +68,7 @@ namespace TestProject.AuthorTests.AuthorCommandTests
         public async Task Handle_ShouldReturnFailure_WhenAuthorHasInvalidData()
         {
             // Arrange
-            var invalidAuthor = new AuthorDto { Name = "" }; // Tomt namn
+            var invalidAuthor = new AuthorDto { Name = "" };
             var command = new AddAuthorCommand(invalidAuthor);
 
             // Act
@@ -85,7 +76,7 @@ namespace TestProject.AuthorTests.AuthorCommandTests
 
             // Assert
             Assert.IsFalse(result.IsSuccess);
-            Assert.AreEqual("Author name cannot be empty", result.ErrorMessage); // Kontrollera felmeddelandet
+            Assert.AreEqual("Author name cannot be empty", result.ErrorMessage);
         }
         [Test]
         public async Task Handle_ShouldReturnFailure_WhenRepositoryReturnsNull()
@@ -94,7 +85,6 @@ namespace TestProject.AuthorTests.AuthorCommandTests
             var authorToAdd = new AuthorDto { Name = "New Author" };
             var command = new AddAuthorCommand(authorToAdd);
 
-            // Mocka repository-anropet och konfigurera det att returnera ett failure-svar
             A.CallTo(() => _mockAuthorRepository.AddAuthor(A<AuthorDto>.Ignored))
                 .Returns(Task.FromResult(OperationResult<Author>.Failure("Failed to add author")));
 

@@ -18,13 +18,10 @@ namespace TestProject.BookTests.CommandTests
         [SetUp]
         public void Setup()
         {
-            // Mocka repositoryn
             _mockBookRepository = A.Fake<IBookRepository>();
 
-            // Mocka loggern
             _mockLogger = A.Fake<ILogger<AddBookCommandHandler>>();
 
-            // Skapa handlern med mockad repository
             _handler = new AddBookCommandHandler(_mockBookRepository, _mockLogger);
         }
         [Test]
@@ -48,7 +45,6 @@ namespace TestProject.BookTests.CommandTests
                 Author = new Author { Name = "Test Author" }
             };
 
-            // Mocka så att repositoryt returnerar en lyckad operation
             A.CallTo(() => _mockBookRepository.AddBook(A<BookDto>._))
                 .Returns(Task.FromResult(OperationResult<Book>.Success(book, "Book added successfully.")));
 
@@ -66,14 +62,13 @@ namespace TestProject.BookTests.CommandTests
             // Arrange
             var bookDto = new BookDto
             {
-                Title = string.Empty, // Ogiltigt titel
+                Title = string.Empty,
                 Description = "A great book",
                 Author = new AuthorDto { Name = "Test Author" }
             };
 
             var command = new AddBookCommand(bookDto);
 
-            // Mocka så att repositoryt returnerar ett misslyckande
             A.CallTo(() => _mockBookRepository.AddBook(A<BookDto>._))
                 .Returns(Task.FromResult(OperationResult<Book>.Failure("Invalid book data", "Title is required.")));
 
@@ -97,7 +92,6 @@ namespace TestProject.BookTests.CommandTests
 
             var command = new AddBookCommand(bookDto);
 
-            // Mocka så att repositoryt returnerar ett generellt misslyckande
             A.CallTo(() => _mockBookRepository.AddBook(A<BookDto>._))
                 .Returns(Task.FromResult(OperationResult<Book>.Failure("An error occurred", "Database error.")));
 

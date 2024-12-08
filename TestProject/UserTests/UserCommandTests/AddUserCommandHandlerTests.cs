@@ -5,7 +5,7 @@ using Domain;
 using FakeItEasy;
 using Infrastructure.Repositories;
 using Microsoft.Extensions.Logging;
-using Moq;
+
 
 namespace TestProject.UserTests.UserCommandTests
 {
@@ -77,7 +77,6 @@ namespace TestProject.UserTests.UserCommandTests
             // Arrange
             var newUser = new UserDto { UserName = "TestUser", Password = "Password123" };
 
-            // Simulera ett undantag i repositoryn
             A.CallTo(() => _mockUserRepository.AddUserAsync(A<User>.Ignored))
                 .Throws(new Exception("Database error."));
 
@@ -87,8 +86,8 @@ namespace TestProject.UserTests.UserCommandTests
             var result = await _handler.Handle(command, CancellationToken.None);
 
             // Assert
-            Assert.IsFalse(result.IsSuccess); // Det ska vara ett misslyckat resultat
-            Assert.AreEqual("Database error.", result.Message); // Kontrollera exakt felmeddelande
+            Assert.IsFalse(result.IsSuccess);
+            Assert.AreEqual("Database error.", result.Message);
         }
     }
 }

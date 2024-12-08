@@ -27,12 +27,10 @@ namespace Infrastructure.Repositories
 
                 if (bookDto.Author != null)
                 {
-                    // Försök hitta en författare med samma namn
                     existingAuthor = _database.Authors.FirstOrDefault(a => a.Name == bookDto.Author.Name);
 
                     if (existingAuthor == null)
                     {
-                        // Lägg till ny författare om den inte finns
                         existingAuthor = new Author
                         {
                             Name = bookDto.Author.Name
@@ -42,7 +40,6 @@ namespace Infrastructure.Repositories
                     }
                 }
 
-                // Skapa ny bok och koppla till författaren
                 var newBook = new Book
                 {
                     Title = bookDto.Title,
@@ -52,7 +49,6 @@ namespace Infrastructure.Repositories
 
                 _database.Books.Add(newBook);
 
-                // Spara ändringar
                 await _database.SaveChangesAsync();
 
                 return OperationResult<Book>.Success(newBook, "Book added successfully.");
@@ -96,20 +92,16 @@ namespace Infrastructure.Repositories
                     return OperationResult<Book>.Failure("Book not found.", "Database error.");
                 }
 
-                // Uppdatera bokens egenskaper
                 existingBook.Title = updatedBook.Title;
                 existingBook.Description = updatedBook.Description;
 
-                // Om författaren uppdateras också
                 if (updatedBook.Author != null)
                 {
-                    // Försök hitta en befintlig författare baserat på namn
                     var existingAuthor = await _database.Authors
                         .FirstOrDefaultAsync(a => a.Name == updatedBook.Author.Name);
 
                     if (existingAuthor == null)
                     {
-                        // Om författaren inte finns, skapa en ny
                         existingAuthor = new Author
                         {
                             Name = updatedBook.Author.Name
@@ -117,7 +109,6 @@ namespace Infrastructure.Repositories
                         _database.Authors.Add(existingAuthor);
                     }
 
-                    // Koppla den hittade eller nya författaren till boken
                     existingBook.Author = existingAuthor;
                 }
 
@@ -136,7 +127,7 @@ namespace Infrastructure.Repositories
             try
             {
                 var books = await _database.Books
-                    .Include(b => b.Author) // Hämta med författare
+                    .Include(b => b.Author)
                     .ToListAsync();
 
                 if (books == null || books.Count == 0)

@@ -1,5 +1,4 @@
-﻿
-using Application.Interfaces.RepositoryInterfaces;
+﻿using Application.Interfaces.RepositoryInterfaces;
 using Application.Queries.Users.LoginUser.Helpers;
 using Domain;
 using MediatR;
@@ -23,16 +22,14 @@ namespace Application.Queries.Users.LoginUser
         {
             try
             {
-                // Hämta användaren från databasen baserat på användarnamn
                 var user = await _userRepository.GetUserByUsernameAsync(request.LoginUser.UserName);
 
-                if (user == null || user.Password != request.LoginUser.Password)  // Direkt jämförelse av lösenord
+                if (user == null || user.Password != request.LoginUser.Password)
                 {
                     _logger.LogWarning("Invalid login attempt for username: {UserName}", request.LoginUser.UserName);
                     return OperationResult<string>.Failure("Invalid username or password");
                 }
 
-                // Generera JWT-token
                 string token = _tokenHelper.GenerateJwtToken(user);
 
                 _logger.LogInformation("User {UserName} successfully logged in.", request.LoginUser.UserName);

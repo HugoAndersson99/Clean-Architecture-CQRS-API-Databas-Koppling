@@ -19,20 +19,17 @@ namespace TestProject.BookTests.CommandTests
         [SetUp]
         public void Setup()
         {
-            // Mocka repositoryn
             _mockBookRepository = A.Fake<IBookRepository>();
 
-            // Mocka loggern
             _mockLogger = A.Fake<ILogger<UpdateBookByIdCommandHandler>>();
 
-            // Skapa handlern med mockad repository
             _handler = new UpdateBookByIdCommandHandler(_mockBookRepository, _mockLogger);
         }
         [Test]
         public async Task Handle_ShouldReturnSuccess_WhenBookIsUpdated()
         {
             // Arrange
-            var bookId = 1; // Exempel på ID för bok
+            var bookId = 1;
             var updatedBookDto = new BookDto
             {
                 Title = "Updated Book Title",
@@ -40,7 +37,6 @@ namespace TestProject.BookTests.CommandTests
             };
             var command = new UpdateBookByIdCommand(bookId, updatedBookDto);
 
-            // Mocka så att repositoryt returnerar en lyckad uppdatering
             A.CallTo(() => _mockBookRepository.UpdateBook(bookId, updatedBookDto))
                 .Returns(Task.FromResult(OperationResult<Book>.Success(new Book { Id = bookId, Title = "Updated Book Title" }, "Book updated successfully.")));
 
@@ -56,7 +52,7 @@ namespace TestProject.BookTests.CommandTests
         public async Task Handle_ShouldReturnFailure_WhenBookDoesNotExist()
         {
             // Arrange
-            var bookId = 1; // Exempel på ID för bok som inte finns
+            var bookId = 1;
             var updatedBookDto = new BookDto
             {
                 Title = "Updated Book Title",
@@ -64,7 +60,6 @@ namespace TestProject.BookTests.CommandTests
             };
             var command = new UpdateBookByIdCommand(bookId, updatedBookDto);
 
-            // Mocka så att repositoryt returnerar ett misslyckande (bok inte funnen)
             A.CallTo(() => _mockBookRepository.UpdateBook(bookId, updatedBookDto))
                 .Returns(Task.FromResult(OperationResult<Book>.Failure("No book found with the given ID.", "Database error.")));
 
@@ -80,7 +75,7 @@ namespace TestProject.BookTests.CommandTests
         public async Task Handle_ShouldReturnFailure_WhenRepositoryFails()
         {
             // Arrange
-            var bookId = 1; // Exempel på ID för bok
+            var bookId = 1;
             var updatedBookDto = new BookDto
             {
                 Title = "Updated Book Title",
@@ -88,7 +83,6 @@ namespace TestProject.BookTests.CommandTests
             };
             var command = new UpdateBookByIdCommand(bookId, updatedBookDto);
 
-            // Mocka så att repositoryt returnerar ett generellt fel
             A.CallTo(() => _mockBookRepository.UpdateBook(bookId, updatedBookDto))
                 .Returns(Task.FromResult(OperationResult<Book>.Failure("An error occurred", "Database error.")));
 

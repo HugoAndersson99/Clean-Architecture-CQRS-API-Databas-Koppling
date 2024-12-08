@@ -20,10 +20,8 @@ namespace Application.Queries.Authors.GetAuthorById
         {
             _logger.LogInformation("Handling GetAuthorByIdQuery for ID {AuthorId}.", request.Id);
 
-            // Hämta författaren från repository
             var result = await _authorRepository.GetAuthorById(request.Id);
 
-            // Returnera resultatet som OperationResult
             if (result.IsSuccess)
             {
                 _logger.LogInformation("Successfully retrieved author with ID {AuthorId}.", request.Id);

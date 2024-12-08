@@ -21,7 +21,6 @@ namespace Application.Commands.Authors.AddAuthor
             _logger.LogInformation("Processing AddAuthorCommand for Author: {AuthorName}", request.AuthorToAdd?.Name);
             if (string.IsNullOrEmpty(request.AuthorToAdd?.Name))
             {
-                // Om författarens namn är tomt eller null, returnera ett fel
                 return OperationResult<Author>.Failure("Author name cannot be empty");
             }
 
